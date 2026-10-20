@@ -9,6 +9,8 @@ const fs = require('fs');
 const path = require('path');
 
 const sel = JSON.parse(fs.readFileSync(path.join(__dirname, 'selectors.json'), 'utf8'));
+// เลือกเฉพาะปุ่ม/ช่องที่มองเห็นจริง (Flow มีปุ่มซ้ำที่ซ่อนอยู่ ทำให้ .first() ไปจับตัวที่ซ่อนแล้ว timeout)
+for (const k of ['settingsButton', 'generateButton', 'promptBox', 'addButton']) { if (sel[k] && !/visible=true/.test(sel[k])) sel[k] = sel[k] + ' >> visible=true'; }
 const DATA = process.env.FLOWBOT_DATA || __dirname;
 const cfg = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
 cfg.qc = 'basic'; // ตรวจคลิปแบบตัวเลขเป็นค่าเริ่มต้น (ปรับได้ในฟันเฟือง)
