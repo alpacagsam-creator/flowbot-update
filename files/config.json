@@ -1,0 +1,10 @@
+{
+  "segmentTimeoutMs": 600000,
+  "noProgressTimeoutMs": 240000,
+  "delayBetweenMs": 5000,
+  "ratio": "9:16",
+  "imageCount": 1,
+  "videoSeconds": 10,
+  "videoCount": 1,
+  "updateUrl": "https://alpacagsam-creator.github.io/flowbot-update/"
+}

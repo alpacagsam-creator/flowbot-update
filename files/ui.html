@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Flow Bot 4.1</title>
+<style>
+:root{--ink:#141a2e;--ink2:#3b4360;--mut:#6b7390;--line:#e6e8f1;--line2:#d5d9e8;--bg:#f3f4f9;--card:#fff;--pri:#4f46e5;--pri2:#7c3aed;--pri-soft:#eef0ff;--ok:#12a150;--ok-soft:#e9f8ef;--warn:#d97706;--warn-soft:#fff6e5;--bad:#dc2626;--bad-soft:#fdeeee;--r:18px;--sh:0 1px 2px rgba(20,26,46,.05),0 8px 24px rgba(20,26,46,.06)}
+*{box-sizing:border-box;margin:0}
+body{font:15px/1.6 "Leelawadee UI","Segoe UI","Noto Sans Thai",Tahoma,system-ui,sans-serif;color:var(--ink);background:var(--bg);min-height:100vh}
+body::before{content:"";position:fixed;inset:0 0 auto 0;height:260px;background:radial-gradient(60% 100% at 20% 0,#e4e3ff 0,transparent 70%),radial-gradient(50% 90% at 90% 0,#efe2ff 0,transparent 70%);z-index:-1}
+.app{max-width:1060px;margin:0 auto;padding:18px 20px 40px;position:relative}
+/* ---- แถบบน ---- */
+.top{display:flex;align-items:center;gap:14px;padding:6px 0 18px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:-.2px;margin-right:auto}
+.logo::before{content:"▶";display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,var(--pri),var(--pri2));color:#fff;font-size:14px;box-shadow:0 6px 14px rgba(79,70,229,.35)}
+.logo span{color:var(--pri)}.logo small{font-size:11px;font-weight:700;color:var(--pri);background:var(--pri-soft);border-radius:99px;padding:2px 8px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--ink2);background:#fff;border:1px solid var(--line);border-radius:99px;padding:6px 12px}
+.chip i{width:8px;height:8px;border-radius:50%;background:#c3c8d8}.chip.ok i{background:var(--ok);box-shadow:0 0 0 3px var(--ok-soft)}.chip.no i{background:var(--bad);box-shadow:0 0 0 3px var(--bad-soft)}
+.chip.no{cursor:pointer;border-color:#f3c4c4}
+.gear{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:#fff;font-size:18px;cursor:pointer;color:var(--ink2);transition:.15s}
+.gear:hover{border-color:var(--pri);color:var(--pri)}
+/* ---- ขั้นตอนบนสุด ---- */
+.dots{display:flex;gap:6px;justify-content:center;margin:0 auto 18px;max-width:560px}
+.dots i{flex:1;font-style:normal;text-align:center;font-size:12px;font-weight:700;color:#9aa1b8;padding-top:8px;border-top:4px solid #e1e4ef;border-radius:2px}
+.dots i.on{color:var(--pri);border-top-color:var(--pri)}
+/* ---- หน้าต่างๆ ---- */
+section{max-width:620px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:24px;box-shadow:var(--sh);padding:28px 30px 26px}
+section[data-p="home"]{max-width:none;background:none;border:0;box-shadow:none;padding:0;display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:860px){section[data-p="home"]{grid-template-columns:1fr}.top{flex-wrap:wrap}.logo{width:100%}}
+h2{font-size:24px;line-height:1.3;text-align:center;margin-bottom:6px;letter-spacing:-.2px}
+.sub{text-align:center;color:var(--mut);margin-bottom:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--sh);padding:22px 22px 20px}
+.card+.card{margin-top:18px}
+.ch{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.ch .n{flex:none;width:28px;height:28px;border-radius:9px;background:var(--pri-soft);color:var(--pri);font-weight:800;display:grid;place-items:center;font-size:14px}
+.ch h3{font-size:17px;margin:0}.ch small{color:var(--mut);font-size:13px;margin-left:auto}
+/* เลือก AI */
+.ais{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.ai{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px 12px;border:1.5px solid var(--line2);border-radius:16px;background:#fff;cursor:pointer;font:inherit;color:var(--ink);transition:.15s}
+.ai:hover{border-color:var(--pri)}
+.ai .lg{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:16px}
+.ai[data-ai="claude"] .lg{background:#d97757}.ai[data-ai="chatgpt"] .lg{background:#10a37f}.ai[data-ai="gemini"] .lg{background:linear-gradient(135deg,#4285f4,#9b72cb)}
+.ai b{font-size:14px}.ai em{font-style:normal;font-size:11px;color:var(--mut)}
+.ai.on{border-color:var(--pri);background:var(--pri-soft);box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+.ai.on::after{content:"✓";position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:50%;background:var(--pri);color:#fff;font-size:12px;display:grid;place-items:center}
+.ai em.ok{color:var(--ok)}
+.aiopen{display:block;margin:10px auto 0;font-size:13px}
+/* แท็บโหมด */
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:#f1f2f8;border-radius:14px;padding:5px;margin-bottom:16px}
+.tab{border:0;background:none;border-radius:10px;padding:10px 6px;font:inherit;font-size:14px;font-weight:700;color:var(--mut);cursor:pointer;line-height:1.3}
+.tab small{display:block;font-weight:500;font-size:11px}
+.tab.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(20,26,46,.12)}
+.pane .lead{color:var(--ink2);font-size:14px;margin-bottom:12px}
+textarea{width:100%;border:1.5px solid var(--line2);border-radius:14px;padding:14px;font:inherit;min-height:110px;resize:vertical;background:#fff;outline:none;color:var(--ink);transition:.15s}
+textarea:focus{border-color:var(--pri);box-shadow:0 0 0 4px rgba(79,70,229,.12)}
+textarea.mono{font:13px/1.5 ui-monospace,Consolas,monospace;min-height:260px}
+.row{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.row label{font-size:14px;color:var(--ink2);font-weight:600}
+select{padding:9px 12px;border-radius:12px;border:1.5px solid var(--line2);background:#fff;font:inherit;color:var(--ink);cursor:pointer}
+select:hover{border-color:var(--pri)}
+.chipsx{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.chipsx button{border:1px dashed var(--line2);background:#fafbff;border-radius:99px;padding:5px 11px;font:inherit;font-size:12px;color:var(--ink2);cursor:pointer}
+.chipsx button:hover{border-color:var(--pri);color:var(--pri)}
+.mini{display:grid;gap:8px;margin:4px 0 6px}
+.mini div{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--ink2)}
+.mini b{flex:none;width:22px;height:22px;border-radius:50%;background:var(--pri-soft);color:var(--pri);font-size:12px;display:grid;place-items:center;margin-top:1px}
+/* ปุ่ม */
+.big{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:0;border-radius:14px;padding:15px;font:inherit;font-size:17px;font-weight:700;color:#fff;background:linear-gradient(90deg,var(--pri),var(--pri2));cursor:pointer;margin-top:16px;box-shadow:0 8px 20px rgba(79,70,229,.3);transition:transform .12s,filter .12s}
+.big:not(:disabled):hover{filter:brightness(1.07);transform:translateY(-1px)}.big:not(:disabled):active{transform:translateY(1px)}
+.big.green{background:linear-gradient(90deg,#12a150,#22c58b);box-shadow:0 8px 20px rgba(18,161,80,.28)}
+.big.dis,.big:disabled{background:#d3d7e6;box-shadow:none;cursor:not-allowed}
+.ghost{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1.5px solid var(--line2);background:#fff;color:var(--ink);border-radius:12px;padding:11px 16px;font:inherit;font-weight:700;cursor:pointer;transition:.15s}
+.ghost:hover{border-color:var(--pri);color:var(--pri);background:var(--pri-soft)}
+.wide{width:100%;margin-top:10px}
+.link{display:block;text-align:center;color:var(--pri);margin-top:12px;font-size:14px;font-weight:600;cursor:pointer;background:none;border:0;width:100%;font-family:inherit;padding:6px;border-radius:10px}
+.link:hover{background:var(--pri-soft)}
+.link.sm{font-size:12.5px;color:var(--mut);margin-top:6px}.link.sm:hover{color:var(--pri)}
+button:focus-visible,select:focus-visible,.auto:focus-visible{outline:3px solid #ffb020;outline-offset:2px}
+/* สวิตช์อัตโนมัติ */
+.auto{display:flex;align-items:center;gap:14px;margin-top:16px;padding:13px 15px;border-radius:14px;background:#fafbff;border:1.5px solid var(--line);cursor:pointer;user-select:none;transition:.15s}
+.auto:hover{border-color:var(--line2)}.auto.on{border-color:var(--pri);background:var(--pri-soft)}
+.auto .sw{flex:none;width:44px;height:26px;border-radius:99px;background:#c9cede;position:relative;transition:.2s}
+.auto .sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.auto.on .sw{background:var(--pri)}.auto.on .sw::after{left:21px}
+.auto b{display:block;font-size:15px}.auto small{color:var(--mut);font-size:13px;line-height:1.4;display:block}
+/* สถานะการเชื่อมต่อ (การ์ดขวา) */
+.pill{display:grid;gap:6px;font-size:14px;color:var(--ink2)}
+.pill.warn{cursor:pointer}
+#stHint{font-size:13px;font-weight:700;margin-top:4px}
+.pill.warn #stHint{background:var(--warn-soft);border-radius:10px;padding:8px 10px;text-decoration:underline;text-underline-offset:3px}
+/* รูปของคุณ */
+.refhead{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;font:inherit;cursor:pointer;padding:0;text-align:left;margin-bottom:12px}
+.refhead h3{font-size:17px;margin:0}.refhead small{color:var(--mut);font-size:13px;margin-left:auto}
+.refhead .n{flex:none;width:28px;height:28px;border-radius:9px;background:#fff4e6;color:#c2410c;display:grid;place-items:center}
+.refadd{display:flex;gap:8px}
+.refadd select{flex:1;min-width:0}
+.drop{display:block;width:100%;margin-top:10px;border:2px dashed var(--line2);border-radius:16px;background:#fafbff;padding:16px;text-align:center;font:inherit;color:var(--ink2);cursor:pointer;transition:.15s}
+.drop:hover,.drop.over{border-color:var(--pri);background:var(--pri-soft);color:var(--pri)}
+.drop b{display:block;font-size:15px}.drop small{font-size:12px;color:var(--mut)}
+.refc{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:8px;position:relative;transition:.15s}
+.refc.off{opacity:.55;background:#f7f8fc}
+.refc img{width:56px;height:56px;object-fit:cover;border-radius:10px;flex:none}
+.refm{flex:1;min-width:0;display:grid;gap:5px}
+.refm input,.refm select{width:100%;min-width:0;border:1px solid var(--line2);border-radius:8px;padding:5px 7px;font:inherit;font-size:13px;color:var(--ink);background:#fff}
+.refm .rn{font-weight:700}.refm select{width:auto;flex:none}
+.ron{display:flex;flex-direction:column;align-items:center;font-size:11px;color:var(--mut);cursor:pointer}.ron input{width:18px;height:18px;accent-color:var(--pri)}
+.rx{position:absolute;top:-7px;right:-7px;background:var(--bad);color:#fff;width:20px;height:20px;border-radius:50%;line-height:20px;text-align:center;cursor:pointer;font-size:13px}
+#refBar a{color:var(--pri)}
+/* หน้าทำงาน */
+.ring{width:170px;height:170px;border-radius:50%;margin:8px auto 18px;display:grid;place-items:center;background:conic-gradient(var(--pri) var(--p),#e6e9f5 0)}
+.ring div{width:136px;height:136px;border-radius:50%;background:#fff;display:grid;place-items:center;text-align:center}
+.ring b{font-size:34px;line-height:1}.ring small{color:var(--mut);display:block;font-size:13px}
+.thumbs{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:6px 0 4px}
+.th{width:52px;height:70px;border-radius:12px;background:linear-gradient(160deg,#c9ccff,#8b8fe8);display:grid;place-items:center;color:#fff;font-weight:700}
+.th.empty{background:#f1f2f8;border:2px dashed var(--line2)}.th.gen{background:linear-gradient(110deg,#eef0f8 30%,#fafbff 50%,#eef0f8 70%);background-size:200% 100%;animation:sh 1.3s infinite;border:2px dashed #cdd3ea}
+.th.warn{background:linear-gradient(160deg,#ffd27a,#f0a020)}.th.done{background:linear-gradient(160deg,#6fe0a8,#12a150)}.th.bad{background:linear-gradient(160deg,#ff9a9d,#dc2626)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
+.im{position:relative;aspect-ratio:3/4;border-radius:14px;cursor:pointer;overflow:hidden;background:#e1e4ef}
+.im img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.im em{position:absolute;left:0;right:0;bottom:0;padding:16px 8px 6px;font-style:normal;font-size:12px;color:#fff;font-weight:700;background:linear-gradient(transparent,rgba(0,0,0,.55))}
+.im.tap{box-shadow:0 4px 12px rgba(0,0,0,.15);transition:transform .12s}
+.im.tap:hover{outline:3px solid var(--pri);transform:translateY(-2px)}
+.im.tap::before{content:"\21BB";position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;background:#fff;color:var(--pri);font-weight:800;display:grid;place-items:center;font-size:15px;box-shadow:0 2px 6px rgba(0,0,0,.3);z-index:2;opacity:0;transition:.15s}
+.im.tap:hover::before{opacity:1}
+.im.redo{outline:3px solid var(--bad)}.im.redo::after{content:"เจนใหม่";position:absolute;top:8px;right:8px;background:var(--bad);color:#fff;font-size:12px;border-radius:99px;padding:2px 9px}
+.im.gen,.im.pending{background:linear-gradient(110deg,#eef0f8 30%,#fafbff 50%,#eef0f8 70%);background-size:200% 100%;animation:sh 1.3s infinite;border:2px dashed #cdd3ea;cursor:default}
+.im.gen em,.im.empty em,.im.pending em{color:var(--mut);background:none}
+.im.empty{background:#f5f6fa;border:2px dashed var(--line);cursor:default}
+@keyframes sh{to{background-position:-200% 0}}
+.hint{text-align:center;color:var(--mut);font-size:13.5px;margin:12px 0 0}
+.prog{height:8px;border-radius:9px;background:#e6e9f5;overflow:hidden;margin:16px 0 4px}.prog i{display:block;height:100%;background:linear-gradient(90deg,var(--pri),var(--pri2));transition:width .4s}
+.risk{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0;font-size:14px}
+.risk b{display:block;margin-bottom:4px}.risk mark{background:#ffe1a8;border-radius:5px;padding:0 4px;font-weight:700}
+.risk .sug{color:#0f7a3d;font-size:13px;margin-top:6px}
+.credit{display:flex;justify-content:space-between;background:var(--ok-soft);border-radius:12px;padding:12px 16px;margin:14px 0 0;font-size:14px;color:#0f6b3f}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+@media (max-width:620px){.three{grid-template-columns:1fr}}
+.opt{display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;border:1.5px solid var(--line2);border-radius:16px;padding:14px 10px;font:inherit;color:var(--ink);cursor:pointer;background:#fff;transition:.15s}
+.opt:hover{border-color:var(--pri);background:var(--pri-soft)}
+.opt b{font-size:15px}.opt small{color:var(--mut);font-size:12px}
+#preAi{background:linear-gradient(90deg,var(--pri),var(--pri2));color:#fff;border-color:transparent}#preAi small{color:#e7e6ff}
+.note{background:var(--warn-soft);border-radius:14px;padding:12px 14px;margin:6px 0 4px;font-size:14px}
+.note.bad{background:var(--bad-soft);color:#7f1d1d}.note.good{background:var(--ok-soft);color:#14532d}
+.okc{width:84px;height:84px;border-radius:50%;background:linear-gradient(135deg,#12a150,#22c58b);margin:6px auto 16px;display:grid;place-items:center;color:#fff;font-size:42px;box-shadow:0 10px 24px rgba(18,161,80,.3)}
+.spin{width:64px;height:64px;border-radius:50%;border:6px solid #e6e9f5;border-top-color:var(--pri);margin:24px auto 22px;animation:rot 1s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+.stp{display:flex;gap:12px;align-items:center;padding:10px 0}.stp b{flex:none;width:28px;height:28px;border-radius:50%;background:var(--pri);color:#fff;display:grid;place-items:center;font-size:14px}
+.hide{display:none !important}
+/* หน้าต่างลอย */
+.modal{position:fixed;inset:0;background:rgba(20,26,46,.45);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.sheet{background:#fff;border-radius:22px;width:100%;max-width:520px;max-height:90vh;overflow:auto;padding:22px 24px 22px;box-shadow:0 30px 80px rgba(20,26,46,.3)}
+.sheet h3{margin-bottom:12px;font-size:19px}
+.srow{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);gap:10px;font-size:14px}
+.srow select{padding:7px 10px;border-radius:10px;font-size:14px;max-width:58%}
+.sgrp{font-size:12px;font-weight:800;color:var(--pri);text-transform:uppercase;letter-spacing:.4px;margin:16px 0 2px}
+/* ด้านล่าง */
+.footer{max-width:620px;margin:18px auto 0;display:flex;justify-content:center;gap:6px;flex-wrap:wrap}
+.foot{font-size:12.5px;color:var(--mut);cursor:pointer;padding:6px 10px;border-radius:99px;border:1px solid transparent}
+.foot:hover{background:#fff;border-color:var(--line);color:var(--ink)}
+#repBtn{color:#c2410c;font-weight:700}#riskFoot{color:#a16207}
+.logbox{display:none;max-width:1060px;margin:12px auto 0;background:#10131c;color:#cdd3e6;border-radius:14px;padding:12px;font:12px/1.5 ui-monospace,Consolas,monospace;max-height:240px;overflow:auto;white-space:pre-wrap}
+</style></head><body>
+<div class="app" id="app">
+ <div class="top">
+  <div class="logo">Flow<span>Bot</span><small>4.1</small></div>
+  <div class="chips"><div class="chip" id="chFlow"><i></i>Google Flow</div><div class="chip" id="chAi"><i></i>AI</div><div class="chip hide" id="chCredit"></div></div>
+  <button class="gear" id="gear" title="ตั้งค่า">⚙</button>
+ </div>
+ <div class="dots" id="dots"><i>1 · AI เขียน prompt</i><i>2 · วาดรูป (ฟรี)</i><i>3 · ทำวิดีโอ</i></div>
+
+ <section data-p="home">
+  <div>
+   <div class="note bad hide" id="sysNote" style="margin-bottom:14px"></div>
+   <div class="note hide" id="updNote" style="margin-bottom:14px"></div>
+   <div class="note hide" id="partNote" style="margin-bottom:14px"></div>
+
+   <div class="card">
+    <div class="ch"><span class="n">1</span><h3>เลือก AI ที่ใช้เขียน prompt</h3></div>
+    <div class="ais" id="aiPick">
+     <button class="ai" data-ai="claude"><span class="lg">C</span><b>Claude</b><em></em></button>
+     <button class="ai" data-ai="chatgpt"><span class="lg">G</span><b>ChatGPT</b><em></em></button>
+     <button class="ai" data-ai="gemini"><span class="lg">✦</span><b>Gemini</b><em></em></button>
+    </div>
+    <button class="link sm" id="aiOpen">ยังไม่ได้ล็อกอิน AI ตัวนี้? เปิดหน้าเว็บให้ล็อกอิน</button>
+   </div>
+
+   <div class="card">
+    <div class="ch"><span class="n">2</span><h3>เริ่มงานแบบไหน?</h3></div>
+    <div class="tabs" id="tabs">
+     <button class="tab" data-tab="topic">✍️ พิมพ์เรื่อง<small>มือใหม่ แนะนำ</small></button>
+     <button class="tab" data-tab="chat">💬 ดึงจากแชต AI<small>มี prompt อยู่ในแชต</small></button>
+     <button class="tab" data-tab="paste">📋 วาง prompt<small>มีข้อความอยู่แล้ว</small></button>
+    </div>
+
+    <div class="pane" data-pane="topic">
+     <p class="lead">พิมพ์ว่าอยากได้คลิปเรื่องอะไร พิมพ์สั้นๆ หรือพิมพ์ไม่เป็นระเบียบก็ได้ บอทจะให้ AI เขียน prompt ให้ แล้วทำใน Flow ต่อเอง</p>
+     <textarea id="topicTa" placeholder="เช่น ขายรองเท้าแตะ ใส่สบาย พื้นนุ่ม ให้คนในรูปเดินโชว์ เรื่องสนุกๆ"></textarea>
+     <div class="chipsx" id="topicEx"><button>รีวิวสินค้า ขายของออนไลน์</button><button>หนังสั้น 3 ตัวละคร ตลกๆ</button><button>เล่าเรื่องประวัติศาสตร์ การ์ตูน 3D</button></div>
+     <div class="row"><label for="partsSel">จำนวนคลิป</label><select id="partsSel"><option value="2">2 คลิป</option><option value="3">3 คลิป</option><option value="4">4 คลิป</option><option value="5">5 คลิป</option><option value="6">6 คลิป</option></select><span style="font-size:12px;color:var(--mut)">ใช้ประมาณ <b id="partsCost">30</b> เครดิต</span></div>
+     <button class="big" id="goBtn">✨ ให้ AI เขียน แล้วเริ่มทำคลิป</button>
+    </div>
+
+    <div class="pane hide" data-pane="chat">
+     <div class="mini">
+      <div><b>1</b><span>เปิดแชตที่ AI เขียน prompt เสร็จแล้ว ไว้ในหน้าต่าง Chrome ของบอท (ใช้สกิล / Gem / Project ของคุณได้ตามปกติ)</span></div>
+      <div><b>2</b><span>กดปุ่มด้านล่าง บอทอ่านคำตอบล่าสุด และใช้ AI ตัวเดียวกันนั้นตลอดงาน</span></div>
+     </div>
+     <button class="big" id="impBtn">📥 ดึง prompt จากแชต แล้วเริ่มทำคลิป</button>
+     <button class="ghost wide" id="hereBtn">⚡ ยังไม่มี prompt? ให้บอทสั่ง AI ในแชตที่เปิดอยู่เขียนให้</button>
+     <button class="link sm" id="insBtn">คัดลอกคำสั่งรูปแบบบอท ไปแปะในแชต AI เอง</button>
+     <button class="link sm" id="expBtn">ใช้ Project ของตัวเอง? คัดลอกคำสั่งถาวร (แปะครั้งเดียว)</button>
+    </div>
+
+    <div class="pane hide" data-pane="paste">
+     <p class="lead">มี prompt หรือคำบรรยายฉากอยู่แล้ว วางได้ทุกรูปแบบ ถ้าบอทอ่านไม่ออก จะให้ AI จัดรูปแบบให้เอง</p>
+     <button class="big" id="pasteLink">📋 เปิดช่องวาง prompt</button>
+    </div>
+
+    <div class="auto" id="autoT" tabindex="0"><div class="sw"></div><div><b>โหมดอัตโนมัติ</b><small id="autoTxt"></small></div></div>
+   </div>
+  </div>
+
+  <div>
+   <div class="card">
+    <button class="refhead" id="refToggle"><span class="n">🖼</span><h3>รูปของคุณ</h3><small><span id="refCount"></span> ไม่บังคับ</small></button>
+    <div id="refBox">
+     <p style="font-size:13px;color:var(--mut);margin:0 0 10px">ใส่รูปหน้าคน สินค้า ชุด หรือฉาก บอทจะสั่ง AI ให้ใช้รูปจริงนี้ และแนบให้เองทุกภาพ ติ๊ก <b>ใช้</b> เฉพาะรูปของเรื่องที่จะทำ</p>
+     <div class="refadd"><select id="refKind"><option value="person">👤 คน / หน้าตัวละคร</option><option value="product">📦 สินค้า</option><option value="outfit">👕 ชุด / เสื้อผ้า</option><option value="place">🏞 สถานที่ / ฉาก</option><option value="other">🖼 อื่นๆ</option></select></div>
+     <button class="drop" id="refAdd"><b>+ เลือกรูป หรือลากรูปมาวางตรงนี้</b><small>JPG · PNG · WEBP (รูป iPhone HEIC ให้แคปหน้าจอก่อน)</small></button>
+     <input type="file" id="refFile" accept="image/png,image/jpeg,image/webp" multiple style="display:none">
+     <div class="note bad hide" id="refErr" style="margin-top:8px"></div>
+     <div id="refBar" class="hide" style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--mut);margin:12px 2px 6px"><span id="refOnTxt"></span><span><a href="#" id="refAllOn">ใช้ทั้งหมด</a> · <a href="#" id="refAllOff">ไม่ใช้ทั้งหมด</a></span></div>
+     <div id="refList" style="display:grid;gap:8px;margin-top:10px"></div>
+    </div>
+   </div>
+   <div class="card">
+    <div class="ch"><span class="n">●</span><h3>สถานะ</h3></div>
+    <div class="pill" id="pill"><div id="stFlow"></div><div id="stAi"></div><div id="stCredit" style="font-size:13px;color:var(--mut)"></div><div id="stHint"></div></div>
+   </div>
+  </div>
+ </section>
+
+ <section data-p="paste" class="hide">
+  <h2>วาง prompt ที่มีอยู่แล้ว</h2><p class="sub">วางข้อความแบบไหนก็ได้ ถ้าไม่ใช่รูปแบบของบอท ให้กดปุ่ม "ให้ AI แปลงให้" · วางทั้งชุดได้เลย (กล่องโค้ดแยกทีละท่อน หรือคั่นด้วย ---)</p>
+  <textarea id="pasteTa" class="mono" spellcheck="false"></textarea>
+  <button class="big" id="pasteGo">ตรวจและเริ่ม</button>
+  <button class="ghost" id="convGo" style="width:100%;margin-top:8px;padding:12px;font-weight:600">🤖 ให้ AI แปลงให้ (ข้อความรูปแบบอื่น)</button>
+  <button class="link" data-back>← กลับ</button>
+  <div class="note bad hide" id="pasteErr" style="margin-top:12px"></div>
+ </section>
+
+ <section data-p="asking" class="hide">
+  <div class="spin"></div><h2 id="askTitle">กำลังเขียน prompt…</h2><p class="sub">รอสักครู่ บอทกำลังคุยกับ AI ให้ (ไม่ต้องทำอะไร)</p>
+  <button class="link" data-stop>หยุด</button>
+ </section>
+
+ <section data-p="waitclip" class="hide">
+  <h2>ให้ AI ของคุณเขียนให้</h2><p class="sub">ทำตาม 3 ขั้นนี้ แล้วบอทรับไปต่อเอง</p>
+  <div class="stp"><b>1</b><div>กดปุ่มด้านล่างเพื่อคัดลอกคำสั่ง</div></div>
+  <button class="big" id="copyIns" style="margin-top:4px">📋 คัดลอกคำสั่ง</button>
+  <div class="stp"><b>2</b><div>นำไปแปะในแชต AI ที่คุณใช้ แล้วรอให้ตอบ</div></div>
+  <div class="stp"><b>3</b><div>กดปุ่ม Copy ใต้คำตอบของ AI — บอทจะจับให้เอง</div></div>
+  <div class="pill"><i style="background:#f0a020"></i><span>กำลังรอคำตอบจากคลิปบอร์ด…</span></div>
+  <button class="link" data-back>← ยกเลิก</button>
+ </section>
+
+ <section data-p="pre" class="hide">
+  <h2 id="preTitle"></h2><p class="sub">ปรับก่อนเริ่ม จะได้ไม่เสียเวลากลางทาง</p>
+  <div class="note bad hide" id="preNote"></div>
+  <div id="riskList"></div>
+  <div class="credit"><span id="creditTxt"></span><span>ตรวจแล้ว ✓</span></div>
+  <div class="three">
+   <button class="opt" id="preAi"><b>✨ ให้ AI ปรับให้เบาลง</b><small>แล้วเริ่มทำเลย</small></button>
+   <button class="opt" id="preEdit"><b>✎ แก้เอง</b><small>ดูและแก้ prompt ก่อน</small></button>
+   <button class="opt" id="preGo"><b>▶ ทำต่อเลย</b><small>ไม่แก้อะไร</small></button>
+  </div>
+  <button class="link" data-back>← กลับหน้าแรก</button>
+ </section>
+
+ <section data-p="edit" class="hide">
+  <h2>แก้ prompt เอง</h2><p class="sub">ท่อนไหนคั่นด้วยบรรทัด --- อย่าลบบรรทัดแท็ก [รูป …] / [วิดีโอ …]</p>
+  <textarea id="editTa" class="mono" spellcheck="false"></textarea>
+  <button class="big" id="editGo">บันทึกแล้วเริ่มทำ</button>
+  <div class="note bad hide" id="editErr" style="margin-top:12px"></div>
+  <button class="link" data-back>← กลับหน้าแรก</button>
+ </section>
+
+ <section data-p="work" class="hide">
+  <h2 id="wTitle">กำลังวาดภาพให้อยู่…</h2>
+  <p class="sub" id="wSub"></p>
+  <div class="note good hide" id="wNote" style="text-align:center;font-size:14px;margin-bottom:10px"></div>
+  <div class="grid" id="grid"></div>
+  <div class="prog"><i id="wProg"></i></div>
+  <p class="hint" id="wHint"></p>
+  <p class="hint hide" id="wFlagHint" style="color:#b04a00"></p>
+  <div id="wBtns">
+   <button class="big green hide" id="approve">✓ ใช้ได้ ทำวิดีโอต่อ</button>
+   <button class="big hide" id="redo">↻ วาดใหม่เฉพาะภาพที่แตะไว้</button>
+   <button class="big dis" id="waitBtn" disabled>ทำวิดีโอต่อ (รอวาดครบก่อน)</button>
+  </div>
+  <button class="link" data-stop>หยุด</button>
+ </section>
+
+ <section data-p="videos" class="hide">
+  <h2>กำลังทำวิดีโอ…</h2><p class="sub">ปล่อยไว้ได้เลย คลิปจะอยู่ใน Flow</p>
+  <div class="ring" id="ring"><div><span><b id="ringN">0</b><small id="ringT"></small></span></div></div>
+  <div class="thumbs" id="vthumbs"></div>
+  <button class="link" data-stop>หยุด</button>
+ </section>
+
+ <section data-p="fix" class="hide">
+  <h2 id="fixTitle"></h2><p class="sub" id="fixSub">ไม่ได้เสียเครดิตท่อนนี้</p>
+  <div class="note bad" id="fixWhy"></div>
+  <div class="note hide" id="fixAi"></div>
+  <div id="fixManual" class="hide">
+   <p class="hint" style="margin:10px 0 8px;text-align:left">แก้ข้อความของท่อนนี้ (เปลี่ยนเฉพาะส่วนที่น่าจะถูกปฏิเสธ)</p>
+   <textarea id="fixTa" class="mono" spellcheck="false" style="min-height:200px"></textarea>
+   <button class="big" id="fixGo">ลองใหม่</button>
+   <button class="link" id="fixAiBtn">ให้ AI แก้ให้</button>
+  </div>
+  <button class="link" data-stop>หยุด</button>
+ </section>
+
+ <section data-p="done" class="hide">
+  <div class="okc">✓</div><h2>เสร็จแล้ว!</h2><p class="sub" id="doneSub"></p>
+  <div class="note hide" id="qcBox" style="text-align:left;font-size:13px;line-height:1.7"></div>
+  <button class="big" id="openFlow">เปิด Flow ดูคลิป</button>
+  <button class="ghost" id="nextPart" style="width:100%;margin-top:8px">➕ ทำช่วงต่อไปของเรื่องเดิม</button>
+  <p class="hint" id="nextHint">เรื่องยาว: ให้ AI เขียนทีละช่วง (ช่วงละ 6-10 ท่อน) บอทจำตัวละครเดิมไว้ให้</p>
+  <button class="link" id="again">ทำเรื่องใหม่</button>
+ </section>
+
+ <section data-p="error" class="hide">
+  <h2>ติดปัญหานิดหน่อย</h2><p class="sub">ไม่ต้องตกใจ แก้ได้</p>
+  <div class="note bad" id="errTxt"></div>
+  <button class="big" id="errResume">ลองต่อจากจุดที่ค้าง</button>
+  <button class="link" id="errLogin">ยังไม่ได้ล็อกอิน? เปิดหน้าล็อกอิน</button>
+  <button class="link" id="errHome">← กลับหน้าแรก</button>
+ </section>
+
+ <section data-p="stopped" class="hide">
+  <h2>หยุดอยู่</h2><p class="sub" id="stopMsg"></p>
+  <button class="big" id="stResume">▶ ทำต่อจากที่ค้าง</button>
+  <button class="link" id="stNew">ทิ้งงานนี้ ทำเรื่องใหม่</button>
+ </section>
+
+ <div class="footer"><div class="foot" id="riskFoot">⚠ ความเสี่ยงต่อบัญชี</div><div class="foot" id="logToggle">ดูรายละเอียดการทำงาน</div><div class="foot" id="repBtn">🛟 ส่งรายงานปัญหา</div></div>
+ <div class="modal hide" id="repModal"><div class="sheet"><h3>ส่งรายงานปัญหา</h3>
+  <p style="font-size:14px;line-height:1.7;margin:0 0 10px">บอทจะรวมข้อมูลการทำงาน (บันทึก ตั้งค่า ภาพหน้าจอตอนล้มเหลว) เป็นไฟล์ zip ให้ 1 ไฟล์ — <b>ไม่มีรหัสผ่านหรือข้อมูลบัญชี</b></p>
+  <textarea id="repNote" rows="3" style="width:100%;box-sizing:border-box;border-radius:10px;border:1px solid #ccc;padding:8px;font:inherit" placeholder="เล่าสั้นๆ ว่าเกิดอะไรขึ้น (ไม่พิมพ์ก็ได้)"></textarea>
+  <div id="repOut" style="font-size:13px;line-height:1.6;margin:10px 0;color:#065f46"></div>
+  <button class="big" id="repGo">สร้างไฟล์รายงาน</button>
+  <button class="link" id="repClose">ปิด</button>
+ </div></div>
+ <div class="logbox" id="logbox"></div>
+
+ <div class="modal hide" id="riskModal"><div class="sheet"><h3>⚠ อ่านก่อนใช้งาน</h3>
+  <p style="font-size:14px;line-height:1.7;margin:0 0 12px">โปรแกรมนี้ควบคุม Google Flow ในบัญชีของคุณโดยอัตโนมัติ (คลิกและพิมพ์แทนคุณ) การทำแบบนี้อาจถูกมองว่าเป็นการใช้ระบบอัตโนมัติ ซึ่งอาจฝืนข้อกำหนดการใช้งานของ Google หรือของบริการ AI ที่คุณใช้ ผู้ใช้อาจมีความเสี่ยง เช่น ถูกจำกัดหรือระงับบัญชีได้ ผู้ขายไม่สามารถรับประกันได้ว่าจะไม่เกิดขึ้น กรุณาอ่านข้อกำหนดของ Google ก่อนใช้ และใช้ด้วยความรับผิดชอบของตัวคุณเอง</p>
+  <button class="big" id="riskOk">เข้าใจแล้ว ใช้งานต่อ</button></div></div>
+
+ <div class="modal hide" id="loginModal"><div class="sheet"><h3>ล็อกอินครั้งแรก (ทำครั้งเดียว)</h3>
+  <div class="stp"><b>1</b><div style="flex:1">เปิด Chrome ของบอท แล้วล็อกอิน Google เข้า Flow</div><button class="ghost" id="lgFlow">เปิด</button></div>
+  <div class="stp"><b>2</b><div style="flex:1">เปิดเว็บ <span id="lgAiName"></span> ในหน้าต่างเดียวกัน แล้วล็อกอิน</div><button class="ghost" id="lgAi">เปิด</button></div>
+  <p class="hint" style="text-align:left">ล็อกอินแล้วปล่อยหน้าต่างนั้นไว้ ไม่ต้องปิด · ระหว่างบอททำงาน อย่าคลิกในหน้าต่างนั้น</p>
+  <button class="big" id="lgClose">เสร็จแล้ว</button></div></div>
+
+ <div class="modal hide" id="modal"><div class="sheet"><h3>ตั้งค่า</h3>
+  <div class="srow"><span>ขนาดภาพ</span><select id="sRatio"><option value="9:16">แนวตั้ง 9:16</option><option value="16:9">แนวนอน 16:9</option></select></div>
+  <div class="srow"><span>ความยาวต่อท่อน</span><select id="sSec"><option value="10">10 วินาที</option><option value="8">8 วินาที</option><option value="6">6 วินาที</option></select></div>
+  <div class="srow"><span>AI ที่ใช้เขียน</span><select class="aisel" id="sAi"><option value="claude">Claude</option><option value="chatgpt">ChatGPT</option><option value="gemini">Gemini</option><option value="other">AI อื่น (คัดลอกวางเอง)</option></select></div>
+  <div class="srow"><span>โหมดวิดีโอ</span><select id="sMode"><option value="auto">อัตโนมัติ (ตามแท็กที่ AI เขียน)</option><option value="ingredients">บังคับ: องค์ประกอบ (แนบรูป)</option><option value="frames">บังคับ: เฟรมเริ่ม-จบ</option></select></div>
+  <div class="srow"><span>ตรวจคลิปหลังสร้าง</span><select id="sQc"><option value="off">ปิด</option><option value="basic">ตรวจเบื้องต้น (ฟรี เร็ว)</option><option value="ai">ให้ AI ของคุณช่วยดูด้วย (ช้ากว่า)</option></select></div>
+  <div class="srow"><span>ถ้าน่าสงสัย เจนใหม่เอง 1 ครั้ง</span><select id="sQcRedo"><option value="0">ไม่ (แค่เตือน)</option><option value="1">เจนใหม่ (เสียเครดิตเพิ่ม)</option></select></div>
+  <div class="srow"><span>ลบรูปต้นฉบับที่ซ้ำ (ทดลอง)</span><select id="sDedupe"><option value="0">ไม่ลบ</option><option value="1">ลบหลังอัปโหลดสำเนา</option></select></div>
+  <div class="srow"><span>อัปเดตอัตโนมัติ</span><select id="sUpd"><option value="1">เปิด</option><option value="0">ปิด (กดเองเมื่อมีอัปเดต)</option></select></div>
+  <div class="srow" style="display:block"><div style="display:flex;justify-content:space-between;align-items:center"><span id="updStat" style="font-size:12px;color:#7a8399"></span><button class="ghost" id="updChk" style="padding:6px 12px">ตรวจอัปเดตตอนนี้</button></div></div>
+  <div class="srow"><span>ให้ตรวจภาพก่อนทำวิดีโอ</span><select id="sReview"><option value="1">ตรวจ</option><option value="0">ข้าม</option></select></div>
+  <div class="srow"><span>ตรวจ prompt ก่อนส่ง</span><select id="sPre"><option value="1">เปิด</option><option value="0">ปิด</option></select></div>
+  <div class="srow"><span>เจอคำเสี่ยง (โหมดอัตโนมัติ)</span><select id="sRisk"><option value="ai">ให้ AI ปรับเองเลย</option><option value="go">ทำต่อโดยไม่แก้</option><option value="ask">หยุดถามฉัน</option></select></div>
+  <div class="srow" style="border:0"><span>ถ้า Flow ไม่รับ</span><select id="sRej"><option value="ai">ให้ AI แก้ให้</option><option value="ask">หยุดถามฉัน</option></select></div>
+  <button class="big" id="closeSet" style="margin-top:12px">เสร็จ</button></div></div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const toast=t=>{let e=document.getElementById('toast');if(!e){e=document.createElement('div');e.id='toast';e.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:88%;background:#7c2d12;color:#fff;padding:12px 16px;border-radius:12px;font-size:14px;line-height:1.5;z-index:99;box-shadow:0 6px 20px rgba(0,0,0,.25)';document.body.appendChild(e)}e.textContent=t;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>e.style.display='none',9000)};
+const api=(p,b)=>fetch(p,{method:'POST',body:JSON.stringify(b||{})}).then(r=>r.json()).then(r=>{if(r&&r.error&&r.ok===false)toast(r.error);return r}).catch(()=>{toast('เชื่อมต่อบอทไม่ได้ ลองปิดหน้าต่างดำแล้วเปิดใหม่');return {}});
+const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const STEP={home:0,paste:0,asking:0,waitclip:0,pre:0,edit:0,work:1,review:1,videos:2,fix:2,done:2,error:0,stopped:1};
+let S=null,view='home',shown='',localView=null,autoLocal=false,sigGrid='';
+
+/* ---------- เลือกหน้าจอ ---------- */
+function setView(v){
+ if(shown===v)return;shown=v;
+ document.querySelectorAll('[data-p]').forEach(e=>e.classList.toggle('hide',e.dataset.p!==v));
+ const d=$('dots').children,cur=STEP[v]||0;for(let i=0;i<3;i++)d[i].className=i<=cur?'on':'';
+ $('dots').style.visibility=v==='done'?'hidden':'visible';
+}
+function viewOf(s){
+ if(localView)return localView;
+ if(s.phase==='review')return 'work';
+ return s.phase;
+}
+/* ---------- วาดหน้าจอ ---------- */
+function labelOf(n,i){const m=String(n).match(/(?:character\s+)?sheet\s*(\w*)/i);return m?('ตัวละคร'+(m[1]?' '+m[1]:'')):n}
+function renderGrid(s){
+ const P=s.plan;if(!P)return;
+ const sig=JSON.stringify(P.images);if(sig===sigGrid)return;sigGrid=sig;
+ $('grid').innerHTML=P.images.map(im=>{
+  const cls=im.status==='done'?(im.flag?'redo':'tap'):(im.status==='gen'?'gen':im.status==='pending'?'pending':'empty');
+  const inner=im.status==='done'&&im.file?`<img src="/img/${encodeURIComponent(im.file)}">`:'';
+  const lab=im.status==='gen'?esc(labelOf(im.name))+' กำลังวาด…':im.status==='pending'?esc(labelOf(im.name))+' รอวาดใหม่':esc(labelOf(im.name));
+  return `<div class="im ${cls}" data-n="${esc(im.name)}">${inner}<em>${lab}</em></div>`}).join('');
+ $('grid').querySelectorAll('.im').forEach(e=>e.onclick=()=>{const im=P.images.find(x=>x.name===e.dataset.n);if(im&&im.status==='done')api('/api/flag',{name:im.name}).then(poll)});
+}
+function render(s){
+ S=s;const v=viewOf(s);setView(v);
+ const P=s.plan,st=s.settings;
+ $('logbox').textContent=s.log.join('\n');
+ const auto=autoLocal;
+ if(v==='home'){
+  $('autoT').classList.toggle('on',auto);
+  $('autoTxt').textContent=auto?'เปิดอยู่: ทำต่อเนื่องจนจบ ไม่รอตรวจภาพ (เหมาะกับทำหลายคลิป)':'ตอนนี้: หยุดให้ตรวจภาพก่อนทำวิดีโอ';
+    const c=s.conn||{},dot=ok=>`<span style="display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:${ok?'#17b26a':'#e5484d'}"></span>`;
+  const AIN={claude:'Claude',chatgpt:'ChatGPT',gemini:'Gemini'};
+  $('stFlow').innerHTML=dot(c.flow)+'Google Flow: '+(c.flow?'เชื่อมต่อแล้ว':'ยังไม่ได้เชื่อมต่อ');
+  $('stAi').innerHTML=dot(c.ai&&c.ai.length)+'AI: '+(c.ai&&c.ai.length?'เชื่อมต่อแล้ว ('+c.ai.map(k=>AIN[k]).join(', ')+')':'ยังไม่ได้เชื่อมต่อ');
+  const ready=c.flow&&c.ai&&c.ai.length;
+  $('stHint').textContent=ready?'✓ พร้อมใช้งาน':(!c.chrome?'Chrome ของบอทยังไม่เปิด · กดที่นี่เพื่อเปิดและล็อกอิน':'กดที่นี่เพื่อเปิดหน้าล็อกอิน');
+  $('stHint').style.color=ready?'#17b26a':'#d97706';
+  $('pill').classList.toggle('warn',!ready);
+  const u=s.update||{},un=$('updNote');
+  if(u.status==='available'){un.classList.remove('hide');un.innerHTML='<b>มีอัปเดตใหม่ (รุ่น '+esc(u.latest)+')</b>'+(u.notes?'<br><small>'+esc(u.notes)+'</small>':'')+'<br><button class="ghost" id="updGo" style="margin-top:8px">อัปเดตเลย'+(u.restart&&!u.boot?' (แล้วปิด-เปิดโปรแกรมใหม่)':'')+'</button>';const g=$('updGo');if(g)g.onclick=async()=>{g.disabled=true;await api('/api/update-apply');poll()}}
+  else if(u.status==='applied'){un.classList.remove('hide');un.innerHTML='✓ อัปเดตเป็นรุ่น '+esc(u.rev)+' แล้ว'+(u.applied&&u.applied.restart&&!u.boot?'<br><small>ปิดหน้าต่างดำแล้วเปิด FlowBot ใหม่เพื่อใช้ของใหม่</small>':'')}
+  else un.classList.add('hide');
+  const iss=(s.sys&&s.sys.issues)||[];const sn=$('sysNote');sn.classList.toggle('hide',!iss.length);sn.innerHTML=iss.map(i=>'<b>⚠ '+esc(i.text)+'</b>'+(i.url?'<br><a href="'+esc(i.url)+'" target="_blank" rel="noopener">ดาวน์โหลด</a>':'')).join('<hr style="border:0;border-top:1px solid #f3c6c6;margin:8px 0">');
+  $('stCredit').textContent=c.credits!=null?'เครดิตใน Flow ตอนนี้: '+c.credits:'';
+  const pn=$('partNote');pn.classList.toggle('hide',!(s.part>1));pn.innerHTML='<b>ช่วงที่ '+s.part+' ของเรื่องเดิม</b><br><small>บอทจำตัวละครจากช่วงก่อนไว้แล้ว · คำสั่งใต้ปุ่มด้านล่างบอก AI ให้ต่อเรื่องเอง</small>';
+  const rc=(s.refs||[]),ron=rc.filter(r=>r.on).length;$('refCount').textContent=rc.length?'(ใช้ '+ron+' จาก '+rc.length+' รูป)':'';
+  $('refBar').classList.toggle('hide',rc.length<2);$('refOnTxt').textContent='ใช้ในเรื่องนี้ '+ron+' รูป';
+  const rsig=JSON.stringify(rc);const rl2=$('refList');
+  if(rl2.dataset.sig!==rsig&&!rl2.contains(document.activeElement)){rl2.dataset.sig=rsig;rl2.innerHTML=rc.map(r=>`<div class="refc${r.on?'':' off'}" data-n="${esc(r.name)}"><img src="/img/${encodeURIComponent(r.file)}"><div class="refm"><input class="rn" value="${esc(r.name)}" title="ชื่อที่ AI ใช้เรียกรูปนี้"><div style="display:flex;gap:6px"><select class="rk">${Object.entries(KINDS).map(([k,t])=>`<option value="${k}"${r.kind===k?' selected':''}>${t}</option>`).join('')}</select><input class="rd" value="${esc(r.note)}" placeholder="อธิบายสั้นๆ (ไม่บังคับ)"></div></div><label class="ron"><input type="checkbox" class="ro"${r.on?' checked':''}>ใช้</label><b class="rx" title="ลบรูป">×</b></div>`).join('')||'<small style="color:#7a8399">ยังไม่มีรูป</small>';
+   rl2.querySelectorAll('.refc').forEach(c=>{const n=c.dataset.n,ed=b=>api('/api/ref-edit',Object.assign({name:n},b)).then(poll);
+    c.querySelector('.rn').onchange=e=>ed({newName:e.target.value});c.querySelector('.rk').onchange=e=>ed({kind:e.target.value});
+    c.querySelector('.rd').onchange=e=>ed({note:e.target.value});c.querySelector('.ro').onchange=e=>ed({on:e.target.checked});
+    c.querySelector('.rx').onclick=async()=>{if(confirm('ลบรูป "'+n+'" ออกจากบอท?')){await api('/api/ref-del',{name:n});poll()}}})}
+ }
+ if(v==='asking'){$('askTitle').textContent=s.msg||'กำลังเขียน prompt…'}
+ if(v==='waitclip'){$('copyIns').dataset.t=s.instruction}
+ if(v==='pre'){
+  const n=s.risks.length;$('preTitle').textContent='ตรวจแล้ว เจอ '+n+' จุดที่เสี่ยงโดนปฏิเสธ';
+  $('preNote').classList.toggle('hide',!s.notice);$('preNote').textContent=s.notice||'';
+  const rl=$('riskList'),sig=JSON.stringify(s.risks);
+  if(rl.dataset.sig!==sig){rl.dataset.sig=sig;rl.innerHTML=s.risks.slice(0,8).map(r=>`<div class="risk"><b>${esc(r.where||'ท่อนที่ '+r.seg)} · ${esc(r.label)}</b>…${esc(r.before)}<mark>${esc(r.word)}</mark>${esc(r.after)}…<div class="sug">แนะนำ: ${esc(r.tip)}</div></div>`).join('')+(n>8?`<p class="hint">…และอีก ${n-8} จุด</p>`:'')}
+  const cc=s.conn&&s.conn.credits;
+  $('creditTxt').textContent='ใช้เครดิตโดยประมาณ '+s.credits+' (ประมาณการ)'+(cc!=null?' · ใน Flow เหลือ '+cc+(cc<s.credits?' ⚠ อาจไม่พอ':''):'');
+  $('preAi').classList.toggle('hide',st.ai==='other');
+ }
+ if(v==='work'){
+  const rv=s.phase==='review',imgs=P?P.images:[],tot=imgs.length,dn=s.imgsDone;
+  renderGrid(s);
+  const flagged=s.flagged.length;
+  $('wTitle').textContent=rv?'วาดครบแล้ว ใช้ได้ไหม?':'กำลังวาดภาพให้อยู่…';
+  $('wSub').textContent=rv?'ภาพไหนไม่ชอบ แตะที่ภาพนั้น':(st.auto||!st.review?'ขั้นนี้ฟรี ไม่เสียเครดิต':'ดูได้เลยระหว่างรอ ภาพไหนไม่ชอบ แตะที่ภาพนั้น');
+  const nt=s.notice;$('wNote').classList.toggle('hide',!nt);$('wNote').textContent=nt||'';
+  $('wProg').style.width=(tot?dn/tot*100:0)+'%';$('wProg').style.background=rv?'var(--ok)':'';
+  $('wHint').textContent=rv?'วาดครบ '+tot+' ภาพแล้ว · ทำวิดีโอ '+(P?P.videos.length:0)+' คลิป ใช้ประมาณ '+s.credits+' เครดิต':'วาดแล้ว '+dn+' จาก '+tot+' ภาพ · ขั้นนี้ฟรี ไม่เสียเครดิต';
+  const fh=$('wFlagHint');fh.classList.toggle('hide',!flagged);fh.textContent=flagged?'ภาพที่แตะไว้ ('+s.flagged.map(labelOf).join(', ')+') จะวาดใหม่ และภาพหลังจากนั้นวาดใหม่ตามด้วย เพราะแต่ละภาพต่อจากภาพก่อนหน้า':'';
+  const manual=st.review&&!st.auto;
+  $('approve').classList.toggle('hide',!(rv&&!flagged));$('redo').classList.toggle('hide',!(rv&&flagged));
+  $('waitBtn').classList.toggle('hide',!(manual&&!rv));
+ }
+ if(v==='videos'&&P){
+  const tot=P.videos.length,dn=s.vidsDone;
+  $('ring').style.setProperty('--p',(tot?dn/tot*100:0)+'%');$('ringN').textContent=dn;$('ringT').textContent='จาก '+tot+' คลิป';
+  $('vthumbs').innerHTML=P.videos.map(x=>`<div class="th ${x.status==='done'?(x.qc&&!x.qc.ok?'warn':'done'):x.status==='gen'?'gen':x.status==='bad'?'bad':'empty'}">${x.status==='done'?(x.qc&&!x.qc.ok?'!':'✓'):''}</div>`).join('');
+ }
+ if(v==='fix'&&s.stop){
+  const k=s.stop,what=k.kind==='image'?'รูป':'ท่อนที่ '+k.no;
+  $('fixTitle').textContent=what+' ติดปัญหานิดหน่อย';
+  $('fixSub').textContent=k.kind==='image'?'รูปไม่เสียเครดิต':'ไม่ได้เสียเครดิตท่อนนี้';
+  const why=/นโยบาย|policy|ล้มเหลว/i.test(k.why)?'Flow ไม่รับ'+(k.kind==='image'?'รูป':'ท่อน')+'นี้ เพราะเนื้อหาอาจเข้าข่ายที่ระบบไม่รับ':(k.why?esc(k.why):'Flow ทำท่อนนี้ไม่สำเร็จ');
+  $('fixWhy').innerHTML='<b>'+why+'</b>'+(k.why&&/นโยบาย|policy|ล้มเหลว/i.test(k.why)?'<br><small style="color:#7a8399">'+esc(k.why)+'</small>':'');
+  const ai=k.aiTrying;
+  $('fixAi').classList.toggle('hide',!ai);$('fixAi').innerHTML='<b>🤖 กำลังให้ '+esc(s.ai)+' เขียน'+what+'นี้ใหม่ให้เบาลง</b><br>แล้วจะทำต่อให้เอง (ครั้งที่ '+k.attempts+' จาก 2)';
+  $('fixManual').classList.toggle('hide',ai);
+  if(!ai&&$('fixTa').dataset.seg!==String(k.seg)+':'+k.attempts+':'+(k.aiFailed||'')){$('fixTa').dataset.seg=String(k.seg)+':'+k.attempts+':'+(k.aiFailed||'');$('fixTa').value=k.text||''}
+  $('fixAiBtn').classList.toggle('hide',st.ai==='other');
+ }
+ if(v==='done'){const qv=(P&&P.videos||[]).map((x,i)=>({i:i+1,q:x.qc})).filter(x=>x.q);const qb=$('qcBox');qb.classList.toggle('hide',!qv.length);if(qv.length){const bad=qv.filter(x=>!x.q.ok);qb.innerHTML='<b>ผลตรวจคลิป:</b> '+(bad.length?'มี '+bad.length+' ท่อนที่น่าสงสัย ลองเปิดดูใน Flow':'ทุกท่อนดูปกติ ✓')+bad.map(x=>'<div>⚠ ท่อนที่ '+x.i+': '+x.q.flags.map(f=>f.replace(/[<>&]/g,'')).join(' · ')+'</div>').join('')+'<div style="opacity:.7;font-size:12px;margin-top:4px">ตัวตรวจช่วยเตือนเท่านั้น ไม่แม่น 100% ดูคลิปจริงก่อนใช้เสมอ</div>'}$('nextPart').textContent='➕ ทำช่วงต่อไปของเรื่องเดิม (ช่วงที่ '+((s.part||1)+1)+')';$('doneSub').textContent=(P&&!P.legacy?'คลิป '+P.videos.length+' ท่อ':'คลิป')+'อยู่ใน Flow พร้อมให้โหลด'}
+ if(v==='error'){$('errTxt').textContent=s.error||'เกิดข้อผิดพลาด';$('errLogin').classList.toggle('hide',!/ล็อกอิน/.test(s.error||''));$('errResume').classList.toggle('hide',!P)}
+ if(v==='stopped'){$('stopMsg').textContent=s.msg||'งานเดิมค้างอยู่ กดทำต่อได้เลย'}
+}
+/* ---------- ปุ่มต่างๆ ---------- */
+const PARTS=[3,4,5,6];
+$('autoT').onclick=()=>{autoLocal=!autoLocal;api('/api/settings',{auto:autoLocal});render(S)};
+$('impBtn').onclick=async()=>{await api('/api/import',{auto:autoLocal});poll()};
+document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>api('/api/login',{what:'ai',ai:b.dataset.open}));
+$('hereBtn').onclick=async()=>{const r=await api('/api/ask-here',{auto:autoLocal});if(r.ok){localView=null}poll()};
+$('expBtn').onclick=async()=>{const r=await fetch('/api/export-snippet').then(r=>r.json());try{await navigator.clipboard.writeText(r.text);$('expBtn').textContent='✓ คัดลอกแล้ว — แปะใน Instructions ของ Project แล้วพิมพ์ "ส่งออกให้ FlowBot" ตอนจะสร้างคลิป'}catch{window.prompt('คัดลอกข้อความนี้',r.text)}};
+$('convGo').onclick=async()=>{const r=await api('/api/convert',{text:$('pasteTa').value,auto:autoLocal});if(r.ok){localView=null}poll()};
+$('insBtn').onclick=async()=>{const r=await fetch('/api/instruction').then(r=>r.json());try{await navigator.clipboard.writeText(r.text);$('insBtn').textContent='✓ คัดลอกแล้ว นำไปแปะในแชต AI ได้เลย'}catch{prompt('คัดลอกข้อความนี้ (Ctrl+C)',r.text)}};
+$('pasteLink').onclick=()=>{localView='paste';render(S)};
+$('pasteGo').onclick=async()=>{const r=await api('/api/paste',{text:$('pasteTa').value,auto:autoLocal});if(r.ok){localView=null;$('pasteErr').classList.add('hide')}poll().then(()=>{if(S.phase==='error'){localView=null}})};
+document.querySelectorAll('[data-back]').forEach(b=>b.onclick=async()=>{localView=null;if(S&&S.phase!=='home'&&S.phase!=='stopped')await api('/api/reset');poll()});
+document.querySelectorAll('[data-stop]').forEach(b=>b.onclick=async()=>{await api('/api/stop');poll()});
+$('copyIns').onclick=async()=>{try{await navigator.clipboard.writeText($('copyIns').dataset.t);$('copyIns').textContent='✓ คัดลอกแล้ว นำไปแปะในแชต AI ได้เลย'}catch{prompt('คัดลอกข้อความนี้ (Ctrl+C)',$('copyIns').dataset.t)}};
+$('preAi').onclick=async()=>{const r=await api('/api/pre',{action:'ai'});if(r.error)alert(r.error);poll()};
+$('preEdit').onclick=async()=>{await api('/api/pre',{action:'edit'});poll()};
+$('preGo').onclick=async()=>{await api('/api/pre',{action:'go'});poll()};
+$('editGo').onclick=async()=>{const r=await api('/api/save-edit',{text:$('editTa').value});if(!r.ok){$('editErr').classList.remove('hide');$('editErr').textContent=r.error||'บันทึกไม่ได้'}else $('editErr').classList.add('hide');poll()};
+$('approve').onclick=async()=>{await api('/api/approve');poll()};
+$('redo').onclick=async()=>{await api('/api/redo');poll()};
+$('fixGo').onclick=async()=>{await api('/api/retry',{text:$('fixTa').value});poll()};
+$('fixAiBtn').onclick=async()=>{await api('/api/ai-fix');poll()};
+$('openFlow').onclick=()=>api('/api/open-flow');
+$('riskFoot').onclick=()=>$('riskModal').classList.remove('hide');
+$('riskOk').onclick=async()=>{await api('/api/settings',{ackRisk:true});$('riskModal').classList.add('hide');poll()};
+$('nextPart').onclick=async()=>{await api('/api/next-part');localView=null;poll()};
+$('refToggle').onclick=()=>$('refBox').classList.toggle('hide');
+const KINDS={person:'👤 คน',product:'📦 สินค้า',outfit:'👕 ชุด',place:'🏞 ฉาก',other:'🖼 อื่นๆ'};
+$('refAdd').onclick=()=>$('refFile').click();
+$('refAllOn').onclick=e=>{e.preventDefault();const r=(S.refs||[])[0];if(r)api('/api/ref-edit',{name:r.name,all:true}).then(poll)};
+$('refAllOff').onclick=e=>{e.preventDefault();const r=(S.refs||[])[0];if(r)api('/api/ref-edit',{name:r.name,all:false}).then(poll)};
+
+$('again').onclick=async()=>{await api('/api/reset');localView=null;poll()};
+$('errResume').onclick=async()=>{await api('/api/resume');poll()};
+$('errHome').onclick=async()=>{await api('/api/reset');poll()};
+$('errLogin').onclick=()=>openLogin();
+$('stResume').onclick=async()=>{await api('/api/resume');poll()};
+$('stNew').onclick=async()=>{await api('/api/reset');poll()};
+$('repBtn').onclick=()=>{$('repOut').textContent='';$('repModal').classList.remove('hide')};
+$('repClose').onclick=()=>$('repModal').classList.add('hide');
+$('repGo').onclick=async()=>{$('repGo').disabled=true;$('repOut').textContent='กำลังรวมข้อมูล…';const r=await api('/api/report',{note:$('repNote').value});$('repGo').disabled=false;
+ $('repOut').textContent=r.ok?('เสร็จแล้ว ✅ หน้าต่างโฟลเดอร์เปิดขึ้นมา — ส่งไฟล์ '+(r.zip?'.zip':'report.txt')+' ที่ถูกเลือกไว้ให้ผู้พัฒนา'):('ทำไม่สำเร็จ: '+(r.error||''))};
+$('logToggle').onclick=()=>{const b=$('logbox');b.style.display=b.style.display==='block'?'none':'block';b.scrollTop=b.scrollHeight};
+/* ล็อกอิน */
+function openLogin(){$('lgAiName').textContent=S?S.ai:'AI';$('loginModal').classList.remove('hide')}
+$('pill').onclick=()=>{if(S&&$('pill').classList.contains('warn'))openLogin()};
+$('lgFlow').onclick=()=>api('/api/login',{what:'flow'});
+$('lgAi').onclick=()=>api('/api/login',{what:'ai',ai:S.settings.ai});
+$('lgClose').onclick=()=>{$('loginModal').classList.add('hide');poll()};
+/* ตั้งค่า */
+function loadSet(st){$('sRatio').value=st.ratio;$('sSec').value=String(st.videoSeconds);$('sAi').value=st.ai;$('sReview').value=st.review?'1':'0';$('sPre').value=st.precheck?'1':'0';$('sRisk').value=st.riskAuto;$('sRej').value=st.onReject;$('sMode').value=st.videoMode||'auto';$('sUpd').value=st.autoUpdate===false?'0':'1';$('sDedupe').value=st.dedupe?'1':'0';$('sQc').value=st.qc||'basic';$('sQcRedo').value=st.qcRedo?'1':'0'}
+$('gear').onclick=()=>{loadSet(S.settings);const u=S.update||{};$('updStat').textContent=!u.enabled?'ระบบอัปเดตยังไม่เปิดใช้ในเครื่องนี้':'รุ่นโค้ด '+u.rev+(u.status==='uptodate'?' · เป็นรุ่นล่าสุดแล้ว':u.status==='error'?' · ตรวจไม่สำเร็จ: '+u.error:u.status==='available'?' · มีอัปเดตรุ่น '+u.latest:'');$('updChk').classList.toggle('hide',!u.enabled);$('modal').classList.remove('hide')};
+$('updChk').onclick=async()=>{$('updStat').textContent='กำลังตรวจ…';const r=await api('/api/update-check');const u=r.update||{};$('updStat').textContent=u.status==='uptodate'?'รุ่นโค้ด '+u.rev+' · เป็นรุ่นล่าสุดแล้ว':u.status==='error'?'ตรวจไม่สำเร็จ: '+u.error:u.status==='available'?'มีอัปเดตรุ่น '+u.latest:'รุ่นโค้ด '+u.rev;poll()};
+$('closeSet').onclick=async()=>{
+ await api('/api/settings',{ratio:$('sRatio').value,videoSeconds:Number($('sSec').value),ai:$('sAi').value,review:$('sReview').value==='1',precheck:$('sPre').value==='1',riskAuto:$('sRisk').value,onReject:$('sRej').value,videoMode:$('sMode').value,dedupe:$('sDedupe').value==='1',qc:$('sQc').value,qcRedo:$('sQcRedo').value==='1',autoUpdate:$('sUpd').value==='1'});
+ $('modal').classList.add('hide');await poll()};
+/* โพลสถานะ */
+let first=true,riskShown=false;
+async function poll(){
+ try{const s=await fetch('/api/state').then(r=>r.json());
+  if(first){first=false;autoLocal=!!s.settings.auto}
+  if(localView&&s.phase!=='home'&&s.phase!=='stopped'&&localView!=='paste')localView=null;
+  if(localView==='paste'&&['asking','pre','work','error','edit'].includes(s.phase))localView=null;
+  render(s);
+  if(!s.settings.ackRisk&&!riskShown){riskShown=true;$('riskModal').classList.remove('hide')}
+  if(shown==='edit'&&!$('editTa').dataset.on){$('editTa').dataset.on='1';$('editTa').value=s.edit||''}
+  if(shown!=='edit')delete $('editTa').dataset.on;
+  if(s.phase==='pre'&&false){}
+ }catch{}
+}
+/* ---------- หน้าแรกแบบใหม่ (3.6) ---------- */
+const AIN2={claude:'Claude',chatgpt:'ChatGPT',gemini:'Gemini',other:'AI อื่น'};
+const lsGet=k=>{try{return localStorage.getItem(k)}catch{return null}},lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch{}};
+let tab=lsGet('fbTab')||'topic',partsInit=false;
+function setTab(t){tab=t;lsSet('fbTab',t);document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));document.querySelectorAll('[data-pane]').forEach(p=>p.classList.toggle('hide',p.dataset.pane!==t))}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));setTab(tab);
+document.querySelectorAll('#aiPick .ai').forEach(b=>b.onclick=async()=>{await api('/api/settings',{ai:b.dataset.ai});poll()});
+$('aiOpen').onclick=()=>api('/api/login',{what:'ai',ai:S&&S.settings.ai!=='other'?S.settings.ai:'claude'});
+document.querySelectorAll('#topicEx button').forEach(b=>b.onclick=()=>{const t=$('topicTa');t.value=(t.value.trim()?t.value.trim()+' ':'')+b.textContent;t.focus()});
+const costOf=()=>Number($('partsSel').value)*(S&&S.settings.videoSeconds<10?12:15);
+$('partsSel').onchange=()=>{$('partsCost').textContent=costOf();api('/api/settings',{parts:Number($('partsSel').value)})};
+$('goBtn').onclick=async()=>{const topic=$('topicTa').value.trim();if(!topic){toast('พิมพ์เรื่องที่อยากได้ก่อน สั้นๆ ก็ได้');$('topicTa').focus();return}
+ if(S&&!(S.conn&&S.conn.ai&&S.conn.ai.length)&&S.settings.ai!=='other'){toast('ยังไม่ได้ล็อกอิน AI — กด "เปิดหน้าเว็บให้ล็อกอิน" ในข้อ 1 ก่อน')}
+ $('goBtn').disabled=true;const r=await api('/api/go',{ai:S.settings.ai,parts:Number($('partsSel').value),auto:autoLocal,topic});$('goBtn').disabled=false;if(r.ok){localView=null}poll()};
+const chipOn=(id,ok,txt)=>{const c=$(id);c.className='chip '+(ok?'ok':'no');c.innerHTML='<i></i>'+txt};
+['chFlow','chAi'].forEach(id=>$(id).onclick=()=>{if($(id).classList.contains('no'))openLogin()});
+function renderHome(s){
+ const st=s.settings,c=s.conn||{},on=(c.ai||[]);
+ document.querySelectorAll('#aiPick .ai').forEach(b=>{const k=b.dataset.ai;b.classList.toggle('on',st.ai===k);const em=b.querySelector('em');em.textContent=on.includes(k)?'● ล็อกอินแล้ว':'ยังไม่ได้ล็อกอิน';em.className=on.includes(k)?'ok':''});
+ $('aiOpen').classList.toggle('hide',st.ai==='other'||on.includes(st.ai));
+ $('aiOpen').textContent='ยังไม่ได้ล็อกอิน '+(AIN2[st.ai]||'AI')+'? เปิดหน้าเว็บให้ล็อกอิน';
+ if(!partsInit){partsInit=true;const p=Math.min(6,Math.max(2,Number(st.parts)||2));$('partsSel').value=String(p)}
+ $('partsCost').textContent=costOf();
+ $('goBtn').textContent=st.ai==='other'?'📋 สร้างคำสั่งให้ฉันไปแปะใน AI เอง':'✨ ให้ '+(AIN2[st.ai]||'AI')+' เขียน แล้วเริ่มทำคลิป';
+ $('impBtn').textContent='📥 ดึง prompt จากแชต แล้วเริ่มทำคลิป';
+}
+function renderChips(s){const c=s.conn||{};chipOn('chFlow',!!c.flow,'Google Flow');chipOn('chAi',!!(c.ai&&c.ai.length),'AI: '+(AIN2[s.settings.ai]||'-'));
+ const cc=$('chCredit');cc.classList.toggle('hide',c.credits==null);cc.className='chip'+(c.credits==null?' hide':'');cc.textContent='💎 '+(c.credits!=null?c.credits+' เครดิต':'')}
+const _render=render;render=function(s){_render(s);renderChips(s);if(viewOf(s)==='home')renderHome(s)};
+/* ลากรูปมาวาง */
+async function addFiles(files){$('refErr').classList.add('hide');
+ for(const f of [...files]){if(!/^image\//.test(f.type)&&!/\.(heic|heif)$/i.test(f.name))continue;
+  const data=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(f)});
+  const r=await api('/api/ref-add',{name:f.name,data,kind:$('refKind').value});
+  if(!r.ok){$('refErr').classList.remove('hide');$('refErr').textContent=(f.name+': ')+(r.error||'อัปโหลดไม่ได้')}}
+ poll()}
+$('refFile').onchange=async()=>{await addFiles($('refFile').files);$('refFile').value=''};
+const dz=$('refAdd');['dragenter','dragover'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.add('over')}));
+['dragleave','drop'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.remove('over')}));
+dz.addEventListener('drop',ev=>addFiles(ev.dataTransfer.files));
+$('autoT').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('autoT').click()}};
+
+poll();setInterval(poll,1200);
+</script></body></html>

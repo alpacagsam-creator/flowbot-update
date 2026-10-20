@@ -1,0 +1,16 @@
+{
+  "url": "https://flow.google.com/",
+  "promptBox": "[role=\"textbox\"][aria-label=\"คุณต้องการสร้างอะไร\"], [role=\"textbox\"][aria-label=\"What do you want to create?\"]",
+  "generateButton": "button[aria-label=\"เริ่มสร้าง\"], button[aria-label=\"Start generation\"]",
+  "settingsButton": "button[aria-label=\"ทริกเกอร์การตั้งค่า\"], button[aria-label=\"Settings trigger\"]",
+  "progressIndicator": "text=/^\\d+%$/",
+  "videoTile": "video",
+  "doneTile": ".footer-left",
+  "addButton": "button[aria-label=\"เพิ่มองค์ประกอบลงในช่องพรอมต์\"], button[aria-label=\"Add ingredients to the prompt box\"]",
+  "pickerSearch": "input[aria-label=\"ค้นหาเนื้อหา\"], input[aria-label=\"Search assets\"]",
+  "pickerUpload": "button:has-text(\"อัปโหลดสื่อ\"), button:has-text(\"Upload media\")",
+  "pickerItem": "button.asset-item",
+  "clearPrompt": "button[aria-label=\"ล้างพรอมต์\"], button[aria-label=\"Clear prompt\"]",
+  "pickerAdd": "button:has-text(\"เพิ่มไปยังพรอมต์\"), button:has-text(\"Add to prompt\")",
+  "ingredientImg": "img[alt=\"รูปภาพองค์ประกอบ\"], img[alt=\"Ingredient image\"]"
+}
