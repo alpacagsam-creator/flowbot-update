@@ -1,7 +1,7 @@
 {
-  "rev": 1,
-  "notes": "รุ่นแรก 4.1",
-  "at": "2026-10-20T16:02:14.286Z",
+  "rev": 2,
+  "notes": "ทดสอบอัปเดต rev 2",
+  "at": "2026-10-20T16:22:33.009Z",
   "files": {
     "selectors.json": {
       "sha256": "8f3f2a262da9a121516ecf69f1fa8c248e65d931bb01628a8180a6ac755edd22"
@@ -16,10 +16,10 @@
       "sha256": "67d5cc6a3143407f0788b7e6473476b8b6ed51deb69d590cd85387c7f8198ad3"
     },
     "server.js": {
-      "sha256": "881ded1532cf87c644f847b657a30f4e195bc7bf22134c0eb1ce46ea97f83256"
+      "sha256": "f5fce28804fbc295e50297660623a5a8c05545aaa07b3cb228a220744c7d4c01"
     },
     "ui.html": {
-      "sha256": "f5fccafbe9a4ee4444e8c4cbe5e729c345f469f8f8ac1a39d087da3f7189d790"
+      "sha256": "24b4fd907469f4cf8e833140c0fc14dbc72aebd5bb4bf7f3237ae533590ce1f5"
     }
   }
 }

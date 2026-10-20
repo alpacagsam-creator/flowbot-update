@@ -630,3 +630,4 @@ function openBrowser() {
   if (process.platform === 'win32') exec(`start "" "${url}"`); else if (process.platform === 'darwin') exec(`open ${url}`);
 }
 process.on('exit', () => { if (child) killWorker(); });
+// rev2 test: force restart
