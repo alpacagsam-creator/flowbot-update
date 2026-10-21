@@ -141,10 +141,72 @@ async function clickRadio(page, labels) {
 async function chipText(page) {
   return (await page.locator(sel.settingsButton).first().innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
 }
+// ปิดหน้าต่าง/แบนเนอร์ของ Flow ที่อาจบังปุ่ม (หน้าต้อนรับผู้ใช้ใหม่, ทัวร์แนะนำ, มีอะไรใหม่, แบนเนอร์เครดิต)
+// กดเฉพาะปุ่มปิด/ข้าม เท่านั้น — ไม่กด "ยอมรับ"/"ตกลง" อะไรแทนลูกค้า
+async function dismissOverlays(page) {
+  await page.keyboard.press('Escape').catch(() => {}); await sleep(400);
+  const n = await page.evaluate(() => {
+    const vis = e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden'; };
+    const TXT = /^(close|ปิด|ข้าม|skip|เข้าใจแล้ว|รับทราบ|got it|ไม่ใช่ตอนนี้|not now|ไว้ทีหลัง|maybe later|later|dismiss|no thanks|ไม่เป็นไร)$/i;
+    const LBL = /^(ปิด|close|dismiss|ข้าม|skip)$|^ปิดแบนเนอร์|^(close|dismiss) (banner|dialog|tour)/i;
+    let c = 0;
+    const inLayer = [...document.querySelectorAll('[role=dialog] button, [role=alertdialog] button, [aria-modal=true] button, .cdk-overlay-container button')];
+    const labelled = [...document.querySelectorAll('button[aria-label]')];
+    for (const b of new Set([...inLayer, ...labelled])) {
+      if (!vis(b) || b.closest('[role=radiogroup]')) continue;
+      const t = (b.innerText || '').replace(/\s+/g, ' ').trim(), l = (b.getAttribute('aria-label') || '').trim();
+      const inside = inLayer.includes(b);
+      if ((inside && TXT.test(t)) || LBL.test(l)) { b.click(); c++; }
+    }
+    return c;
+  }).catch(() => 0);
+  if (n) { log(`ปิดหน้าต่าง/แบนเนอร์ของ Flow ที่อาจบังปุ่ม ${n} อัน`); await sleep(800); }
+  return n;
+}
+
+// เก็บข้อมูลตอนกดปุ่มไม่ได้: ภาพหน้าจอ + อะไรทับปุ่มอยู่ (ใส่ในรายงานปัญหาอัตโนมัติ)
+async function diagButton(page, locator, tag) {
+  await page.screenshot({ path: path.join(DATA, `fail-${tag}.png`) }).catch(() => {});
+  const info = await locator.evaluate(b => {
+    const r = b.getBoundingClientRect();
+    const top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+    const d = e => e ? `${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''}${e.getAttribute('role') ? '[role=' + e.getAttribute('role') + ']' : ''}${e.getAttribute('aria-label') ? '[aria-label=' + e.getAttribute('aria-label') + ']' : ''} "${(e.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 80)}"` : 'ไม่มี';
+    return { box: [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)], view: [innerWidth, innerHeight], covered: !!top && top !== b && !b.contains(top), top: d(top) };
+  }, null, { timeout: 3000 }).catch(() => null);
+  const dialogs = await page.evaluate(() => [...document.querySelectorAll('[role=dialog], [role=alertdialog], [aria-modal=true]')]
+    .filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; })
+    .map(e => (e.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 150))).catch(() => []);
+  log(`[วินิจฉัย ${tag}] url=${page.url()} | ปุ่ม=${info ? JSON.stringify(info) : 'หาไม่เจอในหน้า'} | หน้าต่างที่เปิดอยู่=${dialogs.length ? dialogs.join(' || ') : 'ไม่มี'}`);
+  if (info) info.dialogs = dialogs;
+  return info;
+}
+
+// เปิดเมนูตั้งค่า: กดไม่โดน → ปิดสิ่งที่บัง แล้วลองใหม่ (แทนรอ 30 วิแล้วล้ม)
+async function openSettings(page, isOpen) {
+  const btn = page.locator(sel.settingsButton).first();
+  for (let i = 1; i <= 3; i++) {
+    try { await btn.click({ timeout: 8000 }); await sleep(1000); if (await isOpen()) return; }
+    catch { /* ลองใหม่ด้านล่าง */ }
+    log(`กดปุ่มตั้งค่าของ Flow ไม่โดน (ครั้งที่ ${i}/3) — ปิดหน้าต่างที่อาจบังอยู่แล้วลองใหม่`);
+    await dismissOverlays(page);
+  }
+  const info = await diagButton(page, btn, 'settings');
+  // มีหน้าต่างของ Flow ที่ต้องให้ลูกค้าตัดสินใจเอง (เช่น ข้อกำหนด) → หยุดบอกลูกค้า ไม่กดแทน
+  if (info && info.covered && info.dialogs && info.dialogs.length) throw new Error(`Flow มีหน้าต่างค้างอยู่ที่บอทปิดเองไม่ได้: "${info.dialogs[0].slice(0, 100)}" · ไปที่หน้าต่าง Chrome ของบอท อ่านแล้วกดปิด/ตอบหน้าต่างนั้นเอง แล้วกด "ลองใหม่"`);
+  // ทางสุดท้าย: กดตรงที่ปุ่มแบบไม่สนสิ่งที่บัง
+  await btn.click({ force: true, timeout: 5000 }).catch(() => {}); await sleep(1000);
+  if (await isOpen()) { log('เปิดเมนูตั้งค่าได้ด้วยการกดแบบบังคับ'); return; }
+  await btn.evaluate(b => b.click(), null, { timeout: 3000 }).catch(() => {}); await sleep(1000);
+  if (await isOpen()) { log('เปิดเมนูตั้งค่าได้ด้วยการกดผ่านหน้าเว็บ'); return; }
+  const why = !info ? 'ไม่เจอปุ่มตั้งค่าในหน้า (หน้า Flow อาจยังโหลดไม่เสร็จ หรือไม่ได้อยู่ในหน้าโปรเจ็กต์)'
+    : info.covered ? `มีบางอย่างบังปุ่มตั้งค่าอยู่: ${info.top}` : 'กดปุ่มตั้งค่าแล้วแต่เมนูไม่เปิด';
+  throw new Error(`เปิดเมนูตั้งค่าของ Flow ไม่ได้ — ${why} · ไปที่หน้าต่าง Chrome ของบอท ปิดหน้าต่าง/ป๊อปอัปที่ค้างอยู่ แล้วกด "ลองใหม่" (ถ้ายังไม่ได้ กด "ส่งรายงานปัญหา" — ในรายงานมีภาพหน้าจอตอนนั้นแล้ว)`);
+}
+
 // ตั้งโหมด: type = image | video, frames = ใช้โหมดเฟรม (วิดีโอ), พร้อมสัดส่วน/วินาที/จำนวนจาก config.json
 async function setMode(page, { type, frames }) {
   const isOpen = async () => (await page.locator('button[role=radio]').count()) > 0 && await page.locator('button[role=radio]').first().isVisible().catch(() => false);
-  if (!(await isOpen())) { await page.locator(sel.settingsButton).first().click(); await sleep(1000); }
+  if (!(await isOpen())) await openSettings(page, isOpen);
   await clickRadio(page, type === 'image' ? ['รูปภาพ', 'Image'] : ['วิดีโอ', 'Video']); await sleep(800);
   if (type === 'video') { await clickRadio(page, frames ? ['เฟรม', 'Frames'] : ['องค์ประกอบ', 'Ingredients']); await sleep(600); }
   if (cfg.ratio) await clickRadio(page, cfg.ratio);
