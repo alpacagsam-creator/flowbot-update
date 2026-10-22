@@ -176,20 +176,52 @@ async function diagButton(page, locator, tag) {
   const dialogs = await page.evaluate(() => [...document.querySelectorAll('[role=dialog], [role=alertdialog], [aria-modal=true]')]
     .filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; })
     .map(e => (e.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 150))).catch(() => []);
+  const btns = await page.evaluate(() => [...document.querySelectorAll('button,[role=button],[role=switch],[role=tab]')]
+    .filter(b => { const r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0; })
+    .map(b => `${(b.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 18)}|${b.getAttribute('aria-label') || ''}|${String(b.className || '').split(' ').filter(c => c && !/^(mat-|mdc-|_|flow-)/.test(c)).slice(0, 3).join('.')}`).slice(0, 45)).catch(() => []);
   log(`[วินิจฉัย ${tag}] url=${page.url()} | ปุ่ม=${info ? JSON.stringify(info) : 'หาไม่เจอในหน้า'} | หน้าต่างที่เปิดอยู่=${dialogs.length ? dialogs.join(' || ') : 'ไม่มี'}`);
+  log(`[วินิจฉัย ${tag}] ปุ่มที่เห็นในหน้า (${btns.length}): ${btns.join(' ; ')}`);
   if (info) info.dialogs = dialogs;
   return info;
+}
+
+// Flow รุ่นใหม่บางบัญชีเปิดโหมด "Agent" เป็นค่าเริ่มต้น → แถบตั้งค่าเดิมหายไป: ลองกดปุ่ม Agent เพื่อสลับกลับโหมดปกติ
+async function toggleAgent(page) {
+  return page.evaluate(() => {
+    const vis = e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+    const c = [...document.querySelectorAll('button,[role=button],[role=switch],[role=tab]')].filter(vis)
+      .filter(b => /^agent$/i.test((b.innerText || '').replace(/\s+/g, ' ').trim()) || /^agent( mode)?$/i.test((b.getAttribute('aria-label') || '').trim()));
+    if (!c.length) return false; c[0].click(); return true;
+  }).catch(() => false);
+}
+
+// ไม่เจอปุ่มตั้งค่าที่มองเห็นเลย → ลองสลับออกจากโหมด Agent (ถ้าเจอปุ่มนั้น)
+async function tryLeaveAgent(page, btn, isOpen) {
+  const shown = async () => (await page.locator(sel.settingsButton).count().catch(() => 0)) > 0;
+  if (await shown() || !(await toggleAgent(page))) return false;
+  log('ไม่เจอปุ่มตั้งค่า แต่เจอปุ่ม Agent — ลองสลับออกจากโหมด Agent'); await sleep(2000);
+  if (await shown()) {
+    await btn.click({ timeout: 8000 }).catch(() => {}); await sleep(1000);
+    if (await isOpen()) { log('สลับออกจากโหมด Agent แล้วเปิดเมนูตั้งค่าได้'); return true; }
+  } else { await toggleAgent(page); await sleep(800); log('สลับโหมด Agent แล้วยังไม่เจอปุ่มตั้งค่า — สลับกลับให้เหมือนเดิม'); }
+  return false;
 }
 
 // เปิดเมนูตั้งค่า: กดไม่โดน → ปิดสิ่งที่บัง แล้วลองใหม่ (แทนรอ 30 วิแล้วล้ม)
 async function openSettings(page, isOpen) {
   const btn = page.locator(sel.settingsButton).first();
+  let agentTried = false;
+  if (!(await btn.waitFor({ state: 'visible', timeout: 4000 }).then(() => true).catch(() => false))) {
+    agentTried = true;
+    if (await tryLeaveAgent(page, btn, isOpen)) return;
+  }
   for (let i = 1; i <= 3; i++) {
     try { await btn.click({ timeout: 8000 }); await sleep(1000); if (await isOpen()) return; }
     catch { /* ลองใหม่ด้านล่าง */ }
     log(`กดปุ่มตั้งค่าของ Flow ไม่โดน (ครั้งที่ ${i}/3) — ปิดหน้าต่างที่อาจบังอยู่แล้วลองใหม่`);
     await dismissOverlays(page);
   }
+  if (!agentTried && await tryLeaveAgent(page, btn, isOpen)) return;
   const info = await diagButton(page, btn, 'settings');
   // มีหน้าต่างของ Flow ที่ต้องให้ลูกค้าตัดสินใจเอง (เช่น ข้อกำหนด) → หยุดบอกลูกค้า ไม่กดแทน
   if (info && info.covered && info.dialogs && info.dialogs.length) throw new Error(`Flow มีหน้าต่างค้างอยู่ที่บอทปิดเองไม่ได้: "${info.dialogs[0].slice(0, 100)}" · ไปที่หน้าต่าง Chrome ของบอท อ่านแล้วกดปิด/ตอบหน้าต่างนั้นเอง แล้วกด "ลองใหม่"`);

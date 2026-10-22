@@ -144,6 +144,83 @@ button:focus-visible,select:focus-visible,.auto:focus-visible{outline:3px solid 
 .spin{width:64px;height:64px;border-radius:50%;border:6px solid #e6e9f5;border-top-color:var(--pri);margin:24px auto 22px;animation:rot 1s linear infinite}
 @keyframes rot{to{transform:rotate(360deg)}}
 .stp{display:flex;gap:12px;align-items:center;padding:10px 0}.stp b{flex:none;width:28px;height:28px;border-radius:50%;background:var(--pri);color:#fff;display:grid;place-items:center;font-size:14px}
+
+/* ---- ตัวช่วยคิดเรื่อง ---- */
+.hlp{--field:#f3f5fb;--field-line:#c3c9e0;--k1:#4f46e5;--k2:#7c3aed;--k3:#0f9d8a;--k4:#d9730d;display:flex;flex-direction:column;gap:16px;margin:0}
+.hlp .hsteps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.hlp .hsteps a{text-decoration:none;color:var(--ink2);font-size:12.5px;font-weight:700;display:flex;gap:7px;align-items:center;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:7px 9px}
+.hlp .hsteps i{font-style:normal;width:21px;height:21px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:12px;flex:none}
+.hlp .hsteps a:nth-child(1) i{background:var(--k1)}.hlp .hsteps a:nth-child(2) i{background:var(--k2)}.hlp .hsteps a:nth-child(3) i{background:var(--k3)}.hlp .hsteps a:nth-child(4) i{background:var(--k4)}
+@media (max-width:560px){.hlp .hsteps{grid-template-columns:1fr 1fr}}
+.hlp .hs{background:#fff;border:2px solid var(--line);border-radius:18px;overflow:hidden}
+.hlp .hs>header{display:flex;align-items:center;gap:12px;padding:12px 16px;color:#fff}
+.hlp .hs>header h3{margin:0;font-size:16px;line-height:1.3;color:#fff}.hlp .hs>header p{margin:0;font-size:12px;opacity:.92}
+.hlp .hs .hn{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.24);display:grid;place-items:center;font-weight:800;flex:none}
+.hlp .h1>header{background:var(--k1)}.hlp .h2>header{background:var(--k2)}.hlp .h3>header{background:var(--k3)}.hlp .h4>header{background:var(--k4)}
+.hlp .hs .hb{padding:14px 16px 16px;display:flex;flex-direction:column;gap:14px}
+.hlp .hl{display:block;font-weight:700;font-size:13px;color:var(--ink2);margin-bottom:6px}.hlp .hl small{font-weight:500;color:var(--mut)}
+.hlp textarea,.hlp input[type=text]{background:var(--field)!important;border-color:var(--field-line)!important}
+.hlp textarea:focus,.hlp input[type=text]:focus{background:#fff!important;border-color:var(--pri)!important}
+.hlp details.ser{border:1.5px dashed var(--field-line);border-radius:12px;padding:8px 12px;margin:0}
+.hlp .hadd{border:2px dashed var(--field-line);background:transparent;border-radius:16px;padding:12px;color:var(--ink2);font-weight:700;font-size:14px;cursor:pointer}.hlp .hadd:hover{border-color:var(--pri);color:var(--pri)}
+.hlp .hdock{position:sticky;bottom:0;z-index:5;background:#fff;border:2px solid var(--line);border-radius:16px;padding:10px 12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;box-shadow:0 -6px 20px rgba(40,44,90,.12)}
+.hlp .hdock .hsum{flex:1;min-width:190px;font-size:12.5px;color:var(--ink2);line-height:1.5}.hlp .hdock .hsum b{color:var(--ink)}
+.hlp .hdock .big{flex:1;min-width:210px;margin:0}
+.hlp #hChecks{display:flex;flex-direction:column;gap:6px}
+.hlp #hChecks div{border-radius:10px;padding:7px 12px;font-size:13px;font-weight:600}
+.hlp #hChecks .ok{background:var(--ok-soft);color:var(--ok)}.hlp #hChecks .wn{background:var(--warn-soft);color:#8a5200}
+.hlp .tip{display:flex;gap:8px;font-size:12.5px;color:#8a5200;background:var(--warn-soft);border-radius:12px;padding:9px 12px;margin-bottom:12px;line-height:1.5}
+.hlp h4{font-size:13px;margin:12px 0 6px;color:var(--ink2)}
+.hlp .gn{display:flex;gap:6px;flex-wrap:wrap}
+.hlp .gn button{border:1.5px solid var(--line2);background:#fff;border-radius:99px;padding:6px 13px;font:inherit;font-size:13px;font-weight:600;color:var(--ink2);cursor:pointer}
+.hlp .gn button:hover{border-color:var(--pri);color:var(--pri)}
+.hlp .gn button.on{border-color:var(--pri);background:var(--pri-soft);color:var(--pri)}
+.hlp textarea{width:100%;border:1.5px solid var(--line2);border-radius:12px;padding:9px 12px;font:inherit;font-size:14px;background:#fff;outline:none;color:var(--ink);min-height:0;resize:vertical}.hlp textarea:focus{border-color:var(--pri);box-shadow:0 0 0 4px rgba(79,70,229,.12)}.hlp .sm2{font-size:11.5px;color:var(--mut);text-align:right;margin-top:2px}.hlp .rc{display:flex;gap:5px;flex-wrap:wrap;margin:0 0 8px}.hlp .rc button,.hlp .vc button{border:1px dashed var(--line2);background:#fafbff;border-radius:99px;padding:3px 10px;font:inherit;font-size:12px;color:var(--ink2);cursor:pointer}.hlp .rc button:hover,.hlp .vc button:hover{border-color:var(--pri);color:var(--pri)}.hlp .ep{display:flex;gap:6px;align-items:flex-start;margin-top:6px}.hlp .ep b{flex:none;font-size:12px;color:var(--pri);padding-top:7px;min-width:42px}.hlp .ep textarea{font-size:12.5px;padding:6px 9px;min-height:0}.hlp .ep button{flex:none;border:0;background:none;color:var(--mut);cursor:pointer;font-size:15px;padding-top:5px}
+.hlp .vd{margin-top:6px;font-size:12px}.hlp .vd summary{color:var(--pri);font-weight:700;cursor:pointer;font-size:12px}.hlp .vg{margin-top:6px}.hlp .vg b{display:block;font-size:11.5px;color:var(--ink2);margin-bottom:3px}.hlp .vg div{display:flex;gap:5px;flex-wrap:wrap}.hlp .vg button{border:1px solid var(--line2);background:#fff;border-radius:99px;padding:3px 11px;font:inherit;font-size:12px;color:var(--ink2);cursor:pointer}.hlp .vg button.on{border-color:var(--pri);background:var(--pri-soft);color:var(--pri);font-weight:700}
+.hlp .vc{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}.hlp .rl{font-size:12px;color:var(--mut);margin:0 0 4px}
+.hlp input[type=text]{width:100%;border:1.5px solid var(--line2);border-radius:12px;padding:9px 12px;font:inherit;font-size:14px;background:#fff;outline:none;color:var(--ink)}
+.hlp input[type=text]:focus{border-color:var(--pri);box-shadow:0 0 0 4px rgba(79,70,229,.12)}
+.hlp .tw{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.hlp .tw label{display:block;font-size:12px;font-weight:700;color:var(--ink2);margin:0 0 3px}
+.hlp .hrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.hlp .hcnt{margin-left:auto;font-size:12px;font-weight:700;color:var(--mut)}.hlp .hcnt.ok{color:var(--ok)}
+.hlp .qs{margin-top:8px;font-size:13px;color:var(--ink2);background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 12px;line-height:1.7}
+.hlp details{margin-top:12px;font-size:13px}
+.hlp summary{cursor:pointer;font-weight:700;color:var(--pri)}
+.hlp .pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+@media (max-width:620px){.hlp .pair{grid-template-columns:1fr}}
+.hlp .pair div{border-radius:12px;padding:8px 11px;line-height:1.55;font-size:12.5px}
+.hlp .pair .bd{background:var(--bad-soft);color:var(--bad)}.hlp .pair .gd{background:var(--ok-soft);color:var(--ok)}
+.hlp .pair small{display:block;font-weight:700;margin-bottom:2px}
+.hlp .cc{--cc:var(--k1);--cs:#e9e8ff;border:2px solid var(--cc);border-radius:18px;background:#fff;overflow:hidden;margin-top:14px;box-shadow:0 6px 16px rgba(60,64,120,.10)}
+.hlp .cc:nth-child(2){--cc:var(--k3);--cs:#d9f4ef}.hlp .cc:nth-child(3){--cc:var(--k4);--cs:#fdebd3}.hlp .cc:nth-child(4){--cc:#d6336c;--cs:#fbdfe9}
+.hlp .cc .chd{display:flex;align-items:center;gap:10px;background:var(--cs);padding:9px 14px;border-bottom:2px solid var(--cc)}
+.hlp .cc .av{width:36px;height:36px;border-radius:50%;background:var(--cc);color:#fff;display:grid;place-items:center;font-weight:800;flex:none}
+.hlp .cc .chd b{font-size:15px;color:var(--ink);display:block;line-height:1.2}.hlp .cc .chd small{color:var(--ink2);font-size:12px}
+.hlp .cc .rm{margin-left:auto;border:0;background:#fff;color:var(--mut);cursor:pointer;font-size:17px;width:30px;height:30px;border-radius:50%}
+.hlp .cc .rm:hover{color:var(--bad)}
+.hlp .cc .cbd{padding:12px 14px 14px;display:flex;flex-direction:column;gap:10px}
+.hlp .cc .pre{background:var(--cs);border-radius:12px;padding:8px 11px}
+.hlp .cc .pre .rl{margin:0 0 6px;font-weight:700;color:var(--ink)}
+.hlp .cc .rc{display:flex;gap:6px;flex-wrap:wrap}
+.hlp .cc .rc button{border:1.5px solid var(--cc);background:#fff;border-radius:99px;padding:4px 12px;font:inherit;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer}
+.hlp .cc .rc button:hover{background:var(--cc);color:#fff}
+.hlp .sc{border:1.5px solid var(--line);border-left:5px solid var(--pri);border-radius:14px;background:#fff;padding:11px 12px 12px;margin-top:10px;position:relative}
+.hlp .sc .sh{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.hlp .sc .sn{font-weight:800;font-size:14px;color:var(--pri)}
+.hlp .sc select{border:1.5px solid var(--line2);border-radius:99px;padding:3px 10px;font:inherit;font-size:12px;font-weight:700;color:var(--ink2);background:#fff}
+.hlp .sc .rm{margin-left:auto;border:0;background:none;color:var(--mut);cursor:pointer;font-size:18px}.hlp .sc .rm:hover{color:var(--bad)}
+.hlp .sc label{display:block;font-size:12px;font-weight:700;color:var(--ink2);margin:9px 0 3px}
+.hlp .sc .ch{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.hlp .sc .ch button{border:1.5px solid var(--line2);background:#fff;border-radius:99px;padding:3px 10px;font:inherit;font-size:12px;font-weight:600;color:var(--ink2);cursor:pointer}
+.hlp .sc .ch button:hover{border-color:var(--pri);color:var(--pri)}.hlp .sc .ch button.on{border-color:var(--pri);background:var(--pri-soft);color:var(--pri)}
+.hlp .sc .sct{font-size:11.5px;color:var(--mut);margin-top:3px}
+.sbp{border:1.5px solid var(--line);border-radius:14px;background:#fafbff;padding:10px 12px;margin:0 0 12px;font-size:13px;line-height:1.55;text-align:left}
+.sbp b{color:var(--pri)}.sbp div{padding:3px 0;border-top:1px dashed var(--line)}.sbp div:first-child{border-top:0}
+.hlp .cc .tw{grid-template-columns:1fr}
+.tchk{margin:8px 0 0;display:grid;gap:5px}
+.tchk div{font-size:12.5px;font-weight:600;border-radius:10px;padding:6px 11px}
+.tchk .ok{background:var(--ok-soft);color:var(--ok)}.tchk .wn{background:var(--warn-soft);color:var(--warn)}.tchk .bd{background:var(--bad-soft);color:var(--bad)}
 .hide{display:none !important}
 /* หน้าต่างลอย */
 .modal{position:fixed;inset:0;background:rgba(20,26,46,.45);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
@@ -186,17 +263,74 @@ button:focus-visible,select:focus-visible,.auto:focus-visible{outline:3px solid 
    <div class="card">
     <div class="ch"><span class="n">2</span><h3>เริ่มงานแบบไหน?</h3></div>
     <div class="tabs" id="tabs">
-     <button class="tab" data-tab="topic">✍️ พิมพ์เรื่อง<small>มือใหม่ แนะนำ</small></button>
+     <button class="tab" data-tab="topic">✨ ช่วยคิดเรื่อง<small>โหมดหลัก · เหมาะกับมือใหม่</small></button>
      <button class="tab" data-tab="chat">💬 ดึงจากแชต AI<small>มี prompt อยู่ในแชต</small></button>
      <button class="tab" data-tab="paste">📋 วาง prompt<small>มีข้อความอยู่แล้ว</small></button>
     </div>
 
     <div class="pane" data-pane="topic">
-     <p class="lead">พิมพ์ว่าอยากได้คลิปเรื่องอะไร พิมพ์สั้นๆ หรือพิมพ์ไม่เป็นระเบียบก็ได้ บอทจะให้ AI เขียน prompt ให้ แล้วทำใน Flow ต่อเอง</p>
-     <textarea id="topicTa" placeholder="เช่น ขายรองเท้าแตะ ใส่สบาย พื้นนุ่ม ให้คนในรูปเดินโชว์ เรื่องสนุกๆ"></textarea>
-     <div class="chipsx" id="topicEx"><button>รีวิวสินค้า ขายของออนไลน์</button><button>หนังสั้น 3 ตัวละคร ตลกๆ</button><button>เล่าเรื่องประวัติศาสตร์ การ์ตูน 3D</button></div>
-     <div class="row"><label for="partsSel">จำนวนคลิป</label><select id="partsSel"><option value="2">2 คลิป</option><option value="3">3 คลิป</option><option value="4">4 คลิป</option><option value="5">5 คลิป</option><option value="6">6 คลิป</option></select><span style="font-size:12px;color:var(--mut)">ใช้ประมาณ <b id="partsCost">30</b> เครดิต</span></div>
-     <button class="big" id="goBtn">✨ ให้ AI เขียน แล้วเริ่มทำคลิป</button>
+     <div class="hlp" id="hlp">
+      <div class="tip"><span>💡</span><span>ตัวช่วยนี้มีไว้เพื่อเรียนรู้และเริ่มต้น เมื่อคนใช้เยอะ คลิปจะเริ่มซ้ำกัน ให้สังเกตว่าเรื่องถูกเขียนอย่างไร แล้วปรับเป็นสไตล์ของคุณเอง ลูกเล่นของคุณคือสิ่งที่ทำให้คลิปไม่เหมือนใคร</span></div>
+      <nav class="hsteps"><a href="#hs1"><i>1</i>ภาพรวม</a><a href="#hs2"><i>2</i>ตัวละคร</a><a href="#hs3"><i>3</i>ฉาก</a><a href="#hs4"><i>4</i>ตรวจและสร้าง</a></nav>
+
+      <section class="hs h1" id="hs1">
+       <header><span class="hn">1</span><div><h3>ภาพรวมของเรื่อง</h3><p>ตั้งค่าแนว สไตล์ และเรื่องย่อก่อน</p></div></header>
+       <div class="hb">
+        <div><span class="hl">รูปแบบการทำ</span><div class="gn" id="hFmt"></div><div class="sm2" id="hFmtN" style="text-align:left;margin-top:5px"></div></div>
+        <div><span class="hl">แนวเรื่อง</span><div class="gn" id="hGn"></div></div>
+        <div><span class="hl">สไตล์ภาพ <small>เลือกตามแนวให้อัตโนมัติ เปลี่ยนได้</small></span><div class="gn" id="hSt"></div></div>
+        <div><span class="hl">เรื่องย่อ <small>ภาพรวมทั้งเรื่อง รายละเอียดทีละฉากเขียนในส่วนที่ 3</small></span>
+         <textarea id="hIdea" maxlength="600" rows="4" placeholder="เล่าได้เต็มที่ เช่น ผีในตลาดน้ำร้างที่ไม่ได้มาหลอก แต่มาขอให้ช่วยตามหาของที่หายไป…"></textarea>
+         <div class="sm2" id="hIdeaN">0/600</div></div>
+        <div><span class="hl">ลูกเล่นของคุณ <small>กรอก 2 จาก 3 ช่อง หรือเขียนเรื่องทีละฉากในส่วนที่ 3 แทนก็ได้</small></span>
+         <div class="tw">
+          <div><label>ตัวเอกของคุณ</label><input type="text" id="hT1" maxlength="60" placeholder="ยายวัย 70 ผ้าถุงลายดอก"></div>
+          <div><label>โลกของเรื่อง</label><input type="text" id="hT2" maxlength="60" placeholder="ตลาดน้ำร้าง โทนเขียวหม่น"></div>
+          <div><label>ปมของคุณ</label><input type="text" id="hT3" maxlength="60" placeholder="ผีมาขอความช่วยเหลือ"></div>
+         </div>
+         <div class="hrow"><div class="chipsx" style="margin:0"><button id="hRnd">🎲 สุ่มลูกเล่น</button><button id="hAsk">💬 คำถามช่วยคิด</button></div><span class="hcnt" id="hCnt">0/3</span></div>
+         <div class="qs hide" id="hQs">ลองตอบในใจดู แล้วเอาไปใส่ช่องด้านบน<br>• ตัวเอกกลัวอะไรที่สุดในเรื่องนี้<br>• ถ้าคนดูจำได้แค่ภาพเดียว อยากให้เป็นภาพอะไร<br>• อะไรที่เรื่องแนวนี้ของคนอื่น ไม่ค่อยมี</div></div>
+        <details class="ser"><summary>📚 ซีรีส์ (ไม่บังคับ · ทำหลายตอนโดยตัวละครและโลกเดิม)</summary>
+         <div class="hrow" style="margin-top:8px"><select id="sSel" style="flex:1;min-width:180px"><option value="">ไม่ใช้ซีรีส์ (ทำเรื่องเดี่ยว)</option></select><div class="chipsx" style="margin:0"><button id="sNew">💾 บันทึกเป็นซีรีส์</button><button id="sDel">🗑 ลบซีรีส์</button></div></div>
+         <div class="qs hide" id="sInfo"></div></details>
+       </div>
+      </section>
+
+      <section class="hs h2" id="hs2">
+       <header><span class="hn">2</span><div><h3>ตัวละครและน้ำเสียง</h3><p>1 ตัวละคร = 1 กล่อง · ไม่เกิน 4 ตัว</p></div></header>
+       <div class="hb">
+        <div id="hCast"></div>
+        <button class="hadd" id="hAddC">+ เพิ่มตัวละคร</button>
+        <div class="qs" style="margin-top:0;font-size:12px;color:var(--mut)">น้ำเสียงถูกสร้างโดย Google Flow เราช่วยบอกให้ใกล้เคียงที่กำหนด แต่ไม่รับประกันว่าเสียงเหมือนเดิมทุกคลิป</div>
+       </div>
+      </section>
+
+      <section class="hs h3" id="hStoryBox">
+       <header><span class="hn">3</span><div><h3>เรื่องทีละฉาก = สตอรี่บอร์ดของคุณ</h3><p>1 ฉาก = 1 เหตุการณ์ = 1 ภาพ = 1 คลิป · 2-6 ฉาก</p></div></header>
+       <div class="hb">
+        <div class="qs" style="margin-top:0">เขียนเรื่องเป็นฉากๆ ตามลำดับ บอทจะส่งให้ AI ทำตามนี้เป๊ะ เติมแค่รายละเอียดภาพให้ ช่องไหนไม่รู้จะเขียนอะไรเว้นว่างได้ AI เลือกให้ · ถ้าไม่ใช้ส่วนนี้ ให้ล้างฉากทั้งหมด AI จะแต่งฉากเองจากเรื่องย่อ</div>
+        <div id="hScenes"></div>
+        <div class="hrow"><div class="chipsx" style="margin:0"><button id="hSc3">📋 เริ่มจากโครง 3 ฉาก</button><button id="hSc4">โครง 4 ฉาก</button><button id="hScAdd">+ เพิ่มฉาก</button><button id="hScEx">🔍 ดูตัวอย่างที่กรอกแล้ว</button><button id="hScClr">ล้างทั้งหมด</button></div><span class="sm2" id="hScInfo" style="margin-left:auto;margin-top:0"></span></div>
+       </div>
+      </section>
+
+      <section class="hs h4" id="hs4">
+       <header><span class="hn">4</span><div><h3>ตรวจและสร้าง</h3><p>บอทส่งทั้งหมดนี้ให้ AI ทำตามเป๊ะ</p></div></header>
+       <div class="hb">
+        <div id="hChecks"></div>
+        <div class="row"><label for="partsSel">จำนวนคลิป</label><select id="partsSel"><option value="2">2 คลิป</option><option value="3">3 คลิป</option><option value="4">4 คลิป</option><option value="5">5 คลิป</option><option value="6">6 คลิป</option></select><span style="font-size:12px;color:var(--mut)">ใช้ประมาณ <b id="partsCost">30</b> เครดิต</span></div>
+        <details>
+         <summary>📖 เขียนเรื่องแบบไหนให้ AI เข้าใจ (ตัวอย่างดี/ไม่ดี)</summary>
+         <div class="pair"><div class="bd"><small>แบบนี้ AI เดายาก</small>ผู้หญิงกลัวผี</div><div class="gd"><small>แบบนี้ดี</small>หญิงสาวผมยาวชุดนอนขาว ยืนมองประตูที่เปิดเองในห้องมืด</div></div>
+         <div class="pair"><div class="bd"><small>แบบนี้ AI เดายาก</small>ฉากเมืองโบราณ</div><div class="gd"><small>แบบนี้ดี</small>เมืองโบราณยามเช้า แสงทอง หมอกบาง กล้องค่อยๆ ซูมเข้า</div></div>
+        </details>
+       </div>
+      </section>
+
+      <div class="hdock"><div class="hsum" id="hSum"></div><button class="big" id="goBtn">✨ สร้างคำสั่งให้ AI เขียน</button></div>
+     </div>
+     <textarea id="topicTa" class="hide" tabindex="-1"></textarea>
+     <button class="hide" id="hlpToggle" tabindex="-1"></button>
     </div>
 
     <div class="pane hide" data-pane="chat">
@@ -288,6 +422,7 @@ button:focus-visible,select:focus-visible,.auto:focus-visible{outline:3px solid 
   <h2 id="wTitle">กำลังวาดภาพให้อยู่…</h2>
   <p class="sub" id="wSub"></p>
   <div class="note good hide" id="wNote" style="text-align:center;font-size:14px;margin-bottom:10px"></div>
+  <div class="sbp hide" id="sbPlan"></div>
   <div class="grid" id="grid"></div>
   <div class="prog"><i id="wProg"></i></div>
   <p class="hint" id="wHint"></p>
@@ -401,10 +536,10 @@ function viewOf(s){
  return s.phase;
 }
 /* ---------- วาดหน้าจอ ---------- */
-function labelOf(n,i){const m=String(n).match(/(?:character\s+)?sheet\s*(\w*)/i);return m?('ตัวละคร'+(m[1]?' '+m[1]:'')):n}
+function labelOf(n,i){const m=String(n).match(/(?:character\s+)?sheet\s*(.*)/i);if(m)return 'ตัวละคร'+(m[1]?' '+m[1]:'');const sc=String(n).match(/^scene\s*(\d+)/i);if(sc&&S&&S.film){const x=(S.story||[])[Number(sc[1])-1];return 'ฉาก '+sc[1]+(x&&x.place?' · '+x.place.slice(0,18):'')}return n}
 function renderGrid(s){
  const P=s.plan;if(!P)return;
- const sig=JSON.stringify(P.images);if(sig===sigGrid)return;sigGrid=sig;
+ const sig=JSON.stringify(P.images)+(s.film?'F'+JSON.stringify(s.story||[]):'');if(sig===sigGrid)return;sigGrid=sig;
  $('grid').innerHTML=P.images.map(im=>{
   const cls=im.status==='done'?(im.flag?'redo':'tap'):(im.status==='gen'?'gen':im.status==='pending'?'pending':'empty');
   const inner=im.status==='done'&&im.file?`<img src="/img/${encodeURIComponent(im.file)}">`:'';
@@ -458,13 +593,15 @@ function render(s){
  if(v==='work'){
   const rv=s.phase==='review',imgs=P?P.images:[],tot=imgs.length,dn=s.imgsDone;
   renderGrid(s);
+  const sp=$('sbPlan'),sy=s.story||[];sp.classList.toggle('hide',!(s.film&&sy.length));
+  if(s.film&&sy.length){const h='<b>เรื่องของคุณ (สตอรี่บอร์ด)</b>'+sy.map((x,i)=>'<div><b>ฉาก '+(i+1)+(x.role?' · '+esc(x.role):'')+'</b>'+(x.place?' · '+esc(x.place):'')+'<br>'+esc((x.what||'(AI คิดให้)').slice(0,140))+'</div>').join('');if(sp.dataset.h!==h){sp.dataset.h=h;sp.innerHTML=h}}
   const flagged=s.flagged.length;
-  $('wTitle').textContent=rv?'วาดครบแล้ว ใช้ได้ไหม?':'กำลังวาดภาพให้อยู่…';
-  $('wSub').textContent=rv?'ภาพไหนไม่ชอบ แตะที่ภาพนั้น':(st.auto||!st.review?'ขั้นนี้ฟรี ไม่เสียเครดิต':'ดูได้เลยระหว่างรอ ภาพไหนไม่ชอบ แตะที่ภาพนั้น');
+  $('wTitle').textContent=rv?(s.film?'สตอรี่บอร์ดครบแล้ว ใช้ได้ไหม?':'วาดครบแล้ว ใช้ได้ไหม?'):(s.film?'กำลังวาดสตอรี่บอร์ดให้อยู่…':'กำลังวาดภาพให้อยู่…');
+  $('wSub').textContent=rv?(s.film?'นี่คือสตอรี่บอร์ดของเรื่อง เรียงตามฉาก ฉากไหนไม่ชอบ แตะที่ภาพนั้นแล้ววาดใหม่':'ภาพไหนไม่ชอบ แตะที่ภาพนั้น'):(st.auto||!st.review?'ขั้นนี้ฟรี ไม่เสียเครดิต':'ดูได้เลยระหว่างรอ ภาพไหนไม่ชอบ แตะที่ภาพนั้น');
   const nt=s.notice;$('wNote').classList.toggle('hide',!nt);$('wNote').textContent=nt||'';
   $('wProg').style.width=(tot?dn/tot*100:0)+'%';$('wProg').style.background=rv?'var(--ok)':'';
   $('wHint').textContent=rv?'วาดครบ '+tot+' ภาพแล้ว · ทำวิดีโอ '+(P?P.videos.length:0)+' คลิป ใช้ประมาณ '+s.credits+' เครดิต':'วาดแล้ว '+dn+' จาก '+tot+' ภาพ · ขั้นนี้ฟรี ไม่เสียเครดิต';
-  const fh=$('wFlagHint');fh.classList.toggle('hide',!flagged);fh.textContent=flagged?'ภาพที่แตะไว้ ('+s.flagged.map(labelOf).join(', ')+') จะวาดใหม่ และภาพหลังจากนั้นวาดใหม่ตามด้วย เพราะแต่ละภาพต่อจากภาพก่อนหน้า':'';
+  const fh=$('wFlagHint');fh.classList.toggle('hide',!flagged);fh.textContent=flagged?'ภาพที่แตะไว้ ('+s.flagged.map(labelOf).join(', ')+') จะวาดใหม่'+(s.film?' เฉพาะภาพที่แตะ ภาพอื่นไม่ต้องวาดใหม่':' และภาพหลังจากนั้นวาดใหม่ตามด้วย เพราะแต่ละภาพต่อจากภาพก่อนหน้า'):'';
   const manual=st.review&&!st.auto;
   $('approve').classList.toggle('hide',!(rv&&!flagged));$('redo').classList.toggle('hide',!(rv&&flagged));
   $('waitBtn').classList.toggle('hide',!(manual&&!rv));
@@ -568,12 +705,155 @@ function setTab(t){tab=t;lsSet('fbTab',t);document.querySelectorAll('.tab').forE
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));setTab(tab);
 document.querySelectorAll('#aiPick .ai').forEach(b=>b.onclick=async()=>{await api('/api/settings',{ai:b.dataset.ai});poll()});
 $('aiOpen').onclick=()=>api('/api/login',{what:'ai',ai:S&&S.settings.ai!=='other'?S.settings.ai:'claude'});
-document.querySelectorAll('#topicEx button').forEach(b=>b.onclick=()=>{const t=$('topicTa');t.value=(t.value.trim()?t.value.trim()+' ':'')+b.textContent;t.focus()});
 const costOf=()=>Number($('partsSel').value)*(S&&S.settings.videoSeconds<10?12:15);
 $('partsSel').onchange=()=>{$('partsCost').textContent=costOf();api('/api/settings',{parts:Number($('partsSel').value)})};
-$('goBtn').onclick=async()=>{const topic=$('topicTa').value.trim();if(!topic){toast('พิมพ์เรื่องที่อยากได้ก่อน สั้นๆ ก็ได้');$('topicTa').focus();return}
+
+/* ---- ตัวช่วยคิดเรื่อง (ทำงานฝั่งหน้าจอล้วน ไม่แตะบอท) ---- */
+(()=>{
+const GN=[['สยองขวัญ','บรรยากาศมืด ตึงเครียด แสงน้อย'],['ดราม่า','อารมณ์คนสองคน บทพูดสั้น'],['การ์ตูนเด็ก','สีสดใส ตัวละครน่ารัก'],['เล่าประวัติศาสตร์','มีเสียงเล่าเรื่อง ภาพประกอบเหตุการณ์'],['รีวิวสินค้า','โชว์จุดเด่นของสินค้า ปิดด้วยชวนซื้อ'],['สารคดีสัตว์โลก','ภาพธรรมชาติสมจริง']];
+let cg=-1,cs=-1;const ST=[['สมจริง','ภาพสมจริงเหมือนถ่ายจริง แสงแบบภาพยนตร์'],['การ์ตูน 3D','การ์ตูน 3D นุ่มนวลแบบแอนิเมชัน'],['อนิเมะ','ภาพอนิเมะญี่ปุ่น'],['ภาพวาด','ภาพวาดสีน้ำ/ภาพประกอบ']];const DS=[0,0,1,0,0,0];
+const R=[['เด็กหญิงตาบอดถือโคมกระดาษ','หมู่บ้านลอยน้ำยามหมอก','เธอเห็นผีด้วยเสียง ไม่ใช่ด้วยตา'],['ช่างซ่อมนาฬิกาสูงวัย','ตึกแถวเก่ากลางฝน','นาฬิกาทุกเรือนหยุดที่เวลาเดียวกัน'],['แมวส้มตัวอ้วนสวมกระดิ่งฟ้า','ตลาดนัดกลางคืนสีนีออน','แมวเป็นคนเดียวที่เห็นว่าตลาดนี้ไม่มีคน'],['นักเดินป่าหญิงสะพายเป้สีเหลือง','ป่าสนยามรุ่งเช้า มีหมอกหนา','เสียงนกร้องเป็นจังหวะเหมือนส่งรหัส'],['ลุงขายไอติมปั่นจักรยาน','ซอยเล็กๆ ยามเย็น โทนส้มอุ่น','ไอติมของแกทำให้ใครกินก็นึกถึงวัยเด็ก']];
+const v=id=>$(id).value.trim();
+function dg(){$('hGn').innerHTML=GN.map((g,i)=>'<button class="'+(i===cg?'on':'')+'" data-i="'+i+'">'+g[0]+'</button>').join('');$('hGn').querySelectorAll('button').forEach(b=>b.onclick=()=>{cg=Number(b.dataset.i);cs=DS[cg];dg();ds()})}
+function ds(){$('hSt').innerHTML=ST.map((g,i)=>'<button class="'+(i===cs?'on':'')+'" data-i="'+i+'">'+g[0]+'</button>').join('');$('hSt').querySelectorAll('button').forEach(b=>b.onclick=()=>{cs=Number(b.dataset.i);ds()})}
+function cnt(){const n=['hT1','hT2','hT3'].filter(i=>v(i)).length,e=$('hCnt');e.textContent=n+'/3';e.className='hcnt'+(n>=2?' ok':'');return n}
+dg();ds();cnt();
+['hT1','hT2','hT3'].forEach(i=>$(i).addEventListener('input',cnt));
+$('hRnd').onclick=()=>{const r=R[Math.floor(Math.random()*R.length)];['hT1','hT2','hT3'].forEach((id,k)=>$(id).value=r[k]);cnt()};
+$('hAsk').onclick=()=>$('hQs').classList.toggle('hide');
+const RL={'ตัวเอกหญิง':[['ใบเตย','หญิงสาววัย 25 ผมยาวดำมัดครึ่งหัว สวมเสื้อเชิ้ตสีครีมกับกางเกงยีนส์','เสียงหญิงสาว นุ่ม ใส ระดับกลาง พูดเป็นธรรมชาติ'],['มินตรา','หญิงวัย 30 ผมสั้นประบ่า สวมเดรสสีเขียวมะกอก ใส่แว่นกรอบบาง','เสียงหญิงวัยสามสิบ ต่ำนุ่ม ใจเย็น พูดช้าชัด']],'ตัวเอกชาย':[['ภูมิ','ชายหนุ่มวัย 28 ผมสั้นดำ หนวดเคราบางๆ สวมแจ็กเก็ตเดนิมสีเข้ม','เสียงชายหนุ่ม ทุ้มกลาง พูดจริงจังแต่อบอุ่น'],['ธีร์','ชายวัย 35 ผมเรียบแสกข้าง สวมเสื้อเชิ้ตสีเทาพับแขน','เสียงชายวัยสามสิบ ทุ้มนุ่ม ช้า สุขุม']],'เด็ก':[['ข้าวปั้น','เด็กชายวัย 8 ขวบ ผมหยิกสั้น สวมเสื้อยืดสีเหลืองกับกางเกงขาสั้น','เสียงเด็กชาย สูงใส ร่าเริง พูดเร็วเวลาตื่นเต้น'],['มะลิ','เด็กหญิงวัย 7 ขวบ ผมเปียสองข้าง สวมชุดกระโปรงสีชมพู','เสียงเด็กหญิง สูงใส อ่อนหวาน']],'ผู้สูงอายุ':[['ยายแก้ว','หญิงวัย 70 ผมขาวมัดต่ำ สวมผ้าถุงลายดอกกับเสื้อสีฟ้า','เสียงหญิงสูงวัย แหบเล็กน้อย พูดช้า อบอุ่น'],['ตาสมศักดิ์','ชายวัย 68 ผมขาวบาง หนวดขาว สวมเสื้อคอกลมสีน้ำตาล','เสียงชายสูงวัย ทุ้มแหบ พูดช้า หนักแน่น']],'ตัวร้าย/ลึกลับ':[['คุณเจน','หญิงวัย 40 ผมดำเรียบตรง สวมสูทสีดำ ลิปสติกแดงเข้ม สายตาเยือกเย็น','เสียงหญิงต่ำ เรียบเย็น พูดช้า เน้นคำ'],['ชายชุดดำ','ชายวัย 45 เสื้อโค้ทยาวสีดำ หมวกปีกกว้าง ใบหน้าเรียบนิ่ง','เสียงชายทุ้มต่ำ แผ่ว ลึกลับ']],'เพื่อนสนิท':[['โบ๊ท','ชายหนุ่มวัย 27 ตัวสูง ผมสั้นยุ่งๆ สวมเสื้อฮู้ดสีเทา','เสียงชายหนุ่ม สดใส ตลก พูดเร็ว'],['ฟ้า','หญิงสาววัย 26 ผมบ็อบสั้นสีน้ำตาล สวมสเวตเตอร์สีส้ม','เสียงหญิงสาว สดใส ขี้เล่น']]};
+const VG=[['เพศ',['ชาย','หญิง'],1],['วัย',['เด็ก','วัยรุ่น','ผู้ใหญ่','สูงวัย'],1],['ระดับเสียง',['สูง','กลาง','ต่ำ'],1],['จังหวะ',['ช้า','ปกติ','เร็ว'],1],['ลักษณะ',['อบอุ่น','ใส','นุ่ม','แหบ','หนักแน่น','เย็นชา','ขี้เล่น','ร่าเริง','สั่นเครือ','กระซิบ'],0]];
+const VC={'เด็กร่าเริง':'เสียงเด็ก สูงใส ร่าเริง พูดเร็วเวลาตื่นเต้น','หญิงอ่อนโยน':'เสียงหญิง นุ่ม อ่อนโยน ระดับกลาง พูดช้า','ชายทุ้มสุขุม':'เสียงชาย ทุ้มต่ำ สุขุม พูดช้าหนักแน่น','สูงวัยใจดี':'เสียงสูงวัย แหบเล็กน้อย พูดช้า อบอุ่น','เย็นชาลึกลับ':'เสียงต่ำ แผ่ว เรียบเย็น ลึกลับ','ตลกพูดเร็ว':'เสียงสดใส ตลก พูดเร็ว มีจังหวะขี้เล่น'};
+let fmt='film';
+const FM=[['film','🎬 หนังสั้น','สตอรี่บอร์ดรายฉาก + วิดีโอแบบองค์ประกอบ เปลี่ยนสถานที่และมุมได้อิสระ (แนะนำสำหรับเล่าเรื่อง)'],['key','🔗 ต่อเนื่องคีย์เฟรม','ภาพต่อกันเป็นลูกโซ่ ฉากเดียวต่อเนื่อง ภาพต้นกับท้ายคลิปตรงกันเป๊ะ']];
+function dfm(){$('hStoryBox')&&$('hStoryBox').classList.toggle('hide',fmt!=='film');$('hFmt').innerHTML=FM.map(f=>'<button class="'+(f[0]===fmt?'on':'')+'" data-f="'+f[0]+'">'+f[1]+'</button>').join('');$('hFmtN').textContent=FM.find(f=>f[0]===fmt)[2];$('hFmt').querySelectorAll('button').forEach(b=>b.onclick=()=>{fmt=b.dataset.f;dfm()})}
+dfm();
+window.getFilm=()=>fmt==='film';
+let SER=[];
+async function loadSeries(keep){try{const r=await fetch('/api/series').then(r=>r.json());SER=r.list||[]}catch{SER=[]}
+ const cur=keep===undefined?$('sSel').value:keep;
+ $('sSel').innerHTML='<option value="">ไม่ใช้ซีรีส์ (ทำเรื่องเดี่ยว)</option>'+SER.map(x=>'<option value="'+x.id+'">'+x.name.replace(/</g,'&lt;')+' ('+x.eps.length+' ตอน)</option>').join('');
+ $('sSel').value=SER.some(x=>x.id===cur)?cur:'';showSeries()}
+function curSeries(){return SER.find(x=>x.id===$('sSel').value)||null}
+function showSeries(){const s=curSeries(),b=$('sInfo');
+ $('hIdea').placeholder=s?('ตอนที่ '+(s.eps.reduce((m,e)=>Math.max(m,e.n),0)+1)+' เกิดอะไรขึ้น? เล่าสั้นๆ ก็ได้ ส่วนตัวละคร สไตล์ และเรื่องตอนก่อน บอทใส่ให้เอง'):'เช่น ขายรองเท้าแตะ ใส่สบาย พื้นนุ่ม ให้คนในรูปเดินโชว์ เรื่องสนุกๆ';
+ if(!s){b.classList.add('hide');return}
+ b.classList.remove('hide');
+ b.innerHTML='ตอนต่อไปคือ <b>EP '+(s.eps.reduce((m,e)=>Math.max(m,e.n),0)+1)+'</b> · บอทจำตัวละคร สไตล์ และโลกของซีรีส์ให้แล้ว พิมพ์แค่ว่าตอนนี้เกิดอะไรขึ้นในเรื่องย่อ'+(s.eps.length?'<div style="margin-top:6px;font-size:12px;color:var(--mut)">สรุปตอนก่อนๆ (แก้ได้ AI จะอ่านข้อความนี้):</div>':'')+s.eps.map(e=>'<div class="ep"><b>EP '+e.n+'</b><textarea rows="2" data-n="'+e.n+'" maxlength="400">'+e.summary.replace(/</g,'&lt;')+'</textarea><button data-d="'+e.n+'" title="ลบตอนนี้">×</button></div>').join('');
+ b.querySelectorAll('textarea[data-n]').forEach(t=>t.onchange=async()=>{await fetch('/api/series-ep',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:s.id,n:Number(t.dataset.n),summary:t.value})});toast('บันทึกสรุปตอนแล้ว')});
+ b.querySelectorAll('button[data-d]').forEach(x=>x.onclick=async()=>{if(!confirm('ลบ EP '+x.dataset.d+' ออกจากความจำของซีรีส์?'))return;await fetch('/api/series-ep',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:s.id,n:Number(x.dataset.d),del:true})});loadSeries()})}
+function applySeries(s){$('hCast').innerHTML='';(s.cast||[]).forEach(c=>{addC();const d=$('hCast').lastElementChild;d.querySelector('.cn').value=c.name||'';d.querySelector('.cl').value=c.look||'';d.querySelector('.cv').value=c.voice||''});
+ const gi=GN.findIndex(g=>g[0]===s.genre);if(gi>=0){cg=gi;dg()}const si=ST.findIndex(g=>g[1]===s.style);if(si>=0){cs=si;ds()}
+ if(s.world)$('hT2').value=s.world;cnt()}
+$('sSel').onchange=()=>{const s=curSeries();if(s)applySeries(s);showSeries()};
+$('sNew').onclick=async()=>{const cast=getCast();if(!cast.length){toast('เพิ่มตัวละครอย่างน้อย 1 ตัวก่อน แล้วค่อยบันทึกเป็นซีรีส์');return}
+ const cur=curSeries();const name=prompt('ตั้งชื่อซีรีส์',cur?cur.name:'');if(!name)return;
+ const r=await fetch('/api/series-save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:cur?cur.id:undefined,name,cast,style:cs>=0?ST[cs][1]:'',genre:cg>=0?GN[cg][0]:'',world:v('hT2')})}).then(r=>r.json());
+ if(r.ok){toast('บันทึกซีรีส์แล้ว ครั้งต่อไปเลือกซีรีส์นี้แล้วพิมพ์แค่ว่าตอนใหม่เกิดอะไรขึ้น');loadSeries(r.series.id)}else toast(r.error||'บันทึกไม่ได้')};
+$('sDel').onclick=async()=>{const s=curSeries();if(!s){toast('เลือกซีรีส์ที่จะลบก่อน');return}if(!confirm('ลบซีรีส์ "'+s.name+'" และความจำทุกตอน?'))return;await fetch('/api/series-del',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:s.id})});loadSeries('')};
+window.getSeriesId=()=>$('sSel').value;
+window.reloadSeries=()=>loadSeries();
+window.getScript=()=>'';
+$('hIdea').addEventListener('input',()=>{$('hIdeaN').textContent=$('hIdea').value.length+'/600'});
+window.getCast=()=>[...document.querySelectorAll('#hCast .cc')].map(e=>({name:e.querySelector('.cn').value.trim(),look:e.querySelector('.cl').value.trim(),voice:e.querySelector('.cv').value.trim()})).filter(c=>c.name||c.look||c.voice);
+function addC(){const box=$('hCast');if(box.children.length>=4){toast('เพิ่มได้ไม่เกิน 4 ตัวละคร');return}
+ const d=document.createElement('div');d.className='cc';
+ d.innerHTML='<div class="chd"><span class="av"></span><div><b class="ct">ตัวละคร</b><small class="cs2">ยังไม่ตั้งชื่อ</small></div><button class="rm" title="ลบตัวละครนี้">×</button></div><div class="cbd"><div class="pre"><p class="rl">นึกไม่ออก? กดเลือกแบบสำเร็จรูป แล้วแก้ต่อได้</p><div class="rc">'+Object.keys(RL).map(k=>'<button data-r="'+k+'">'+k+'</button>').join('')+'</div></div><div class="tw"><div><label>ชื่อตัวละคร</label><input type="text" class="cn" maxlength="30" placeholder="เช่น ยายแก้ว"></div><div><label>หน้าตา (วัย ผม ชุด)</label><input type="text" class="cl" maxlength="140" placeholder="หญิงวัย 70 ผมขาวมัดต่ำ ผ้าถุงลายดอก"></div><div><label>น้ำเสียง (วัย โทน ลักษณะเสียง)</label><input type="text" class="cv" maxlength="140" placeholder="เสียงหญิงสูงวัย แหบเล็กน้อย พูดช้า อบอุ่น"><div class="vc">'+Object.keys(VC).map(k=>'<button data-v="'+k+'">'+k+'</button>').join('')+'</div><details class="vd"><summary>🎚 ปรับโทนเสียงละเอียด (หรือพิมพ์เองในช่องข้างบนได้เลย)</summary>'+VG.map(g=>'<div class="vg"><b>'+g[0]+(g[2]?'':' (เลือกได้หลายอย่าง)')+'</b><div>'+g[1].map(o=>'<button data-g="'+g[0]+'" data-o="'+o+'">'+o+'</button>').join('')+'</div></div>').join('')+'</details></div></div></div>';
+ d.querySelectorAll('.vg button').forEach(b=>b.onclick=()=>{const g=VG.find(x=>x[0]===b.dataset.g);if(g[2])d.querySelectorAll('.vg button[data-g="'+g[0]+'"]').forEach(x=>{if(x!==b)x.classList.remove('on')});b.classList.toggle('on');
+  const sel=n=>[...d.querySelectorAll('.vg button[data-g="'+n+'"].on')].map(x=>x.dataset.o);
+  const p=['เสียง'+(sel('เพศ')[0]||'')+(sel('วัย')[0]||'')];if(sel('ระดับเสียง')[0])p.push('ระดับเสียง'+sel('ระดับเสียง')[0]);if(sel('จังหวะ')[0])p.push('พูด'+sel('จังหวะ')[0]);if(sel('ลักษณะ').length)p.push(sel('ลักษณะ').join(' '));
+  d.querySelector('.cv').value=p.join(' ')});
+ d.querySelectorAll('.rc button').forEach(b=>b.onclick=()=>{const a=RL[b.dataset.r],i=(Number(b.dataset.i||0)+1)%a.length;b.dataset.i=i;const x=a[i];d.querySelector('.cn').value=x[0];d.querySelector('.cl').value=x[1];d.querySelector('.cv').value=x[2];castRenum();scAll().forEach(scWho)});
+ d.querySelectorAll('.vc button').forEach(b=>b.onclick=()=>{d.querySelector('.cv').value=VC[b.dataset.v];d.querySelectorAll('.vg button.on').forEach(x=>x.classList.remove('on'))});
+ d.querySelector('.cn').addEventListener('input',castRenum);
+ d.querySelector('.rm').onclick=()=>{d.remove();castRenum();scAll().forEach(scWho)};box.appendChild(d);castRenum()}
+function castRenum(){[...$('hCast').children].forEach((d,i)=>{d.querySelector('.ct').textContent='ตัวละครที่ '+(i+1);d.querySelector('.av').textContent=i+1;d.querySelector('.cs2').textContent=d.querySelector('.cn').value.trim()||'ยังไม่ตั้งชื่อ'});$('hAddC').style.display=$('hCast').children.length>=4?'none':''}
+$('hAddC').onclick=addC;
+/* ---------- เรื่องทีละฉาก (สตอรี่บอร์ดของผู้ใช้) ---------- */
+const SR=[['เปิดเรื่อง','ให้คนดูรู้ว่าใคร อยู่ที่ไหน อยากได้อะไร เช่น ยายแก้วถือตะกร้าเดินเข้าตลาดน้ำร้างตอนพลบค่ำ มองหาลูกค้า'],['เจอปัญหา','มีอะไรเกิดขึ้นที่ทำให้ไม่เป็นอย่างที่คิด เช่น ได้ยินเสียงกระซิบข้างหลัง แต่หันไปไม่เจอใคร'],['ตึงขึ้น','ปัญหาแรงขึ้น ตัวละครต้องทำอะไรสักอย่าง เช่น ยายตัดสินใจเดินตามเสียงเข้าไปในซอยมืด'],['จุดพลิก','สิ่งที่ไม่คาดคิดเปิดเผย เช่น เสียงนั้นคือผีที่เหงา อยากมีคนคุยด้วย'],['ภาพจบ','ผลของเรื่อง และภาพที่คนดูจำได้ เช่น ยายหัวเราะ นั่งคุยกับผีท่ามกลางโคมไฟ']];
+const SMD=['เหงา','ตลก','ระแวง','ตกใจ','ตื่นเต้น','อบอุ่น','เศร้า','โล่งใจ'],SSH=['ภาพกว้างเห็นสถานที่','ระยะกลาง','ใกล้ใบหน้า','มองข้ามไหล่','มุมต่ำเงยขึ้น','ตามหลัง เห็นแผ่นหลังตัวละคร','ถ่ายด้านข้าง ตามเดิน','ตัวละครเดินเข้าหากล้อง'] ;
+const SMID={3:[1],4:[1,3],5:[1,2,3],6:[1,2,2,3]};
+const roleIdx=(i,n)=>i===0?0:(i===n-1?4:(SMID[n]||[1])[i-1]);
+const scAll=()=>[...document.querySelectorAll('#hScenes .sc')];
+function scWho(c){const names=getCast().map(x=>x.name).filter(Boolean);c._who=new Set([...c._who].filter(n=>names.includes(n)));const b=c.querySelector('.sw');
+ b.innerHTML=names.length?names.map(n=>'<button data-n="'+n.replace(/"/g,'&quot;')+'" class="'+(c._who.has(n)?'on':'')+'">'+n.replace(/</g,'&lt;')+'</button>').join(''):'<span class="sct">เพิ่มตัวละครในข้อ 4 ก่อน แล้วเลือกได้ที่นี่ (หรือเว้นว่างให้ AI เลือก)</span>';
+ b.querySelectorAll('button').forEach(x=>x.onclick=()=>{const n=x.dataset.n;c._who.has(n)?c._who.delete(n):c._who.add(n);x.classList.toggle('on')})}
+function scRole(c,r){c.querySelector('.sr').value=r;c.querySelector('.sa').placeholder=SR[r][1]}
+function scRenum(){const cs=scAll(),n=cs.length;cs.forEach((c,i)=>{c.querySelector('.sn').textContent='ฉาก '+(i+1);c.querySelector('.slk').style.display=i?'flex':'none';if(!c.dataset.man)scRole(c,roleIdx(i,n))});
+ const e=$('hScInfo');e.textContent=n?(n<2?'ใส่อย่างน้อย 2 ฉาก':'บอทจะทำ '+n+' คลิป ('+n+' ฉาก)'):'';
+ if(n>=2&&n<=6&&$('partsSel').value!==String(n)){$('partsSel').value=String(n);$('partsSel').dispatchEvent(new Event('change'))}}
+function scAdd(v0){const box=$('hScenes');if(box.children.length>=6){toast('เพิ่มได้ไม่เกิน 6 ฉาก');return null}
+ const c=document.createElement('div');c.className='sc';c._who=new Set(v0&&v0.who||[]);
+ c.innerHTML='<div class="sh"><span class="sn"></span><select class="sr">'+SR.map((r,i)=>'<option value="'+i+'">'+r[0]+'</option>').join('')+'</select><button class="rm" title="ลบฉากนี้">×</button></div>'
+ +'<label>ที่ไหน / เมื่อไหร่</label><input type="text" class="sp" maxlength="100" placeholder="เช่น ตลาดน้ำร้าง ตอนพลบค่ำ">'
+ +'<label class="slk" style="display:flex;gap:6px;align-items:center;font-weight:600"><input type="checkbox" class="sk"> 🔗 ต่อเนื่องจากฉากก่อน (อยู่ที่เดิม ฉากเดิม ภาพต่อกันไม่กระโดด)</label>'
+ +'<label>ใครอยู่ในฉากนี้</label><div class="ch sw"></div>'
+ +'<label>เกิดอะไรขึ้น (1 เหตุการณ์)</label><textarea class="sa" maxlength="400" rows="3"></textarea>'
+ +'<label>อารมณ์ของฉาก</label><input type="text" class="sm" maxlength="40" placeholder="เช่น ระแวง"><div class="ch">'+SMD.map(x=>'<button data-k="sm" data-v="'+x+'">'+x+'</button>').join('')+'</div>'
+ +'<label>ช็อต / มุมกล้อง <span style="font-weight:500;color:var(--mut)">(เว้นว่างให้ AI เลือก)</span></label><input type="text" class="sh2" maxlength="60" placeholder="เช่น ภาพกว้างเห็นสถานที่"><div class="ch">'+SSH.map(x=>'<button data-k="sh2" data-v="'+x+'">'+x+'</button>').join('')+'</div>'
+ +'<label>บทพูดในฉากนี้ <span style="font-weight:500;color:var(--mut)">(ไม่บังคับ · ชื่อ: คำพูด · 1 บรรทัดต่อ 1 ประโยค)</span></label><textarea class="ss" maxlength="400" rows="2" placeholder="ยายแก้ว: ไม่มีใครมาเลยสักคน"></textarea><div class="sct"></div>';
+ const q=k=>c.querySelector('.'+k);
+ c.querySelectorAll('.ch button[data-k]').forEach(b=>b.onclick=()=>{q(b.dataset.k).value=b.dataset.v});
+ q('sr').onchange=()=>{c.dataset.man='1';c.querySelector('.sa').placeholder=SR[Number(q('sr').value)][1]};
+ const cnt=()=>{const t=q('ss').value,syl=Math.round(t.replace(/[^฀-๿]/g,'').length/2.3);c.querySelector('.sct').textContent=t.trim()?'ประมาณ '+syl+' พยางค์ · ใส่ได้ ~52 ต่อฉาก (10 วินาที)'+(syl>56?' ⚠ เกิน บทอาจถูกตัด':''):'';c.querySelector('.sct').style.color=syl>56?'var(--warn)':'var(--mut)'};
+ q('ss').addEventListener('input',cnt);
+ q('rm').onclick=()=>{c.remove();scRenum()};
+ q('sk').onchange=()=>{c.dataset.lk='1'};
+ q('sp').addEventListener('input',()=>{const p=c.previousElementSibling;if(p&&!c.dataset.lk){const a=p.querySelector('.sp').value.trim();q('sk').checked=!!a&&a===q('sp').value.trim()}});
+ if(v0){q('sk').checked=!!v0.link;if(v0.link)c.dataset.lk='1';q('sp').value=v0.place||'';q('sa').value=v0.what||'';q('sm').value=v0.mood||'';q('sh2').value=v0.shot||'';q('ss').value=v0.say||'';if(v0.role!==undefined){c.dataset.man='1'}}
+ box.appendChild(c);scWho(c);scRenum();if(v0&&v0.role!==undefined)scRole(c,v0.role);cnt();return c}
+function scFill(n){if(scAll().length&&scAll().some(c=>c.querySelector('.sa').value.trim())&&!confirm('ล้างฉากที่กรอกไว้แล้วเริ่มใหม่?'))return;$('hScenes').innerHTML='';for(let i=0;i<n;i++)scAdd()}
+$('hSc3').onclick=()=>scFill(3);$('hSc4').onclick=()=>scFill(4);$('hScAdd').onclick=()=>scAdd();
+$('hScClr').onclick=()=>{if(scAll().length&&confirm('ลบฉากทั้งหมด?')){$('hScenes').innerHTML='';scRenum()}};
+$('hScEx').onclick=()=>{if(scAll().some(c=>c.querySelector('.sa').value.trim())&&!confirm('แทนที่ฉากที่กรอกไว้ด้วยตัวอย่าง?'))return;$('hScenes').innerHTML='';
+ [{role:0,place:'ตลาดน้ำร้าง ตอนพลบค่ำ มีหมอกบาง',what:'ยายแก้วถือตะกร้า เดินเข้ามาในตลาดที่ไม่มีใครเลย มองซ้ายมองขวาอย่างแปลกใจ',mood:'ระแวง',shot:'ภาพกว้างเห็นสถานที่'},
+  {role:1,place:'ทางเดินไม้ริมคลอง โคมไฟสลัว',what:'ผีสองตนแอบกระซิบกันหลังเสาไม้ ว่าจะหลอกยายดีไหม แต่ยายไม่รู้ตัว',mood:'ตลก',shot:'มองข้ามไหล่'},
+  {role:4,link:true,place:'ทางเดินไม้ริมคลอง โคมไฟสลัว',what:'ยายหันมาเห็นผี ไม่กลัว กลับยิ้มแล้ววางตะกร้า ชวนผีนั่งคุยกันเหมือนเพื่อนเก่า',mood:'อบอุ่น',shot:'ระยะกลาง',say:'ยายแก้ว: มาๆ นั่งคุยกันก่อน ตลาดเหงาเหมือนกันนะ'}].forEach(x=>scAdd(x));scRenum()};
+$('hCast').addEventListener('input',()=>scAll().forEach(scWho));$('hAddC').addEventListener('click',()=>setTimeout(()=>scAll().forEach(scWho),0));
+window.getStory=()=>{if(!window.getFilm())return [];const roles=SR.map(r=>r[0]);return scAll().map(c=>{const q=k=>c.querySelector('.'+k).value.trim();return{role:roles[Number(q('sr'))]||'',place:q('sp'),who:[...c._who],link:!!c.querySelector('.sk').checked&&c!==scAll()[0],what:q('sa'),mood:q('sm'),shot:q('sh2'),say:q('ss')}}).filter(x=>x.what||x.place||x.say||x.mood||x.shot)};
+window.getAutoTopic=()=>[cg>=0?'แนว'+GN[cg][0]+' ('+GN[cg][1]+')':'',cs>=0?'สไตล์ภาพ: '+ST[cs][1]:''].filter(Boolean).join(' · ')||'หนังสั้นตามเนื้อเรื่องทีละฉากที่เขียนไว้';
+
+window.composeTopic=()=>{
+ if(cg<0)return{ok:false,msg:'เลือกแนวเรื่องก่อน',focus:'hGn'};
+ const st=window.getStory?window.getStory():[];
+ if(cnt()<2&&st.length<2)return{ok:false,msg:'กรอกลูกเล่นอย่างน้อย 2 ช่อง หรือเขียนเรื่องทีละฉากอย่างน้อย 2 ฉาก (กดสุ่มลูกเล่นได้ถ้าคิดไม่ออก)',focus:'hT1'};
+ if(cs<0){cs=DS[cg];ds()}
+ const p=[];
+ if(v('hIdea'))p.push('เรื่องย่อ: '+v('hIdea').replace(/\s+/g,' '));
+ p.push('แนว'+GN[cg][0]+' ('+GN[cg][1]+')','สไตล์ภาพ: '+ST[cs][1]);
+ if(v('hT1'))p.push('ตัวเอก: '+v('hT1'));
+ if(v('hT2'))p.push('โลกของเรื่อง: '+v('hT2'));
+ if(v('hT3'))p.push('ปมพิเศษ: '+v('hT3'));
+ p.push('ทุกฉากให้เขียนลักษณะตัวละครครบทุกครั้ง และ 1 ฉากมี 1 เหตุการณ์');
+ return{ok:true,text:p.join(' · ')};
+};
+/* รายการตรวจ + แถบสรุป */
+function drawChecks(){
+ const st=window.getStory?window.getStory():[],n=st.length,cast=getCast().filter(c=>c.name),say=st.filter(x=>x.say).length,filled=st.filter(x=>x.what).length,t=cnt();
+ const o=[];
+ o.push(cg>=0?['ok','แนว '+GN[cg][0]+' · สไตล์ '+ST[cs>=0?cs:DS[cg]][0]]:['wn','ยังไม่ได้เลือกแนวเรื่อง']);
+ if(fmt==='film'){
+  if(n>=2)o.push(['ok','เรื่องทีละฉาก '+n+' ฉาก = '+n+' คลิป'+(filled<n?' · มี '+(n-filled)+' ฉากที่ยังไม่เขียนเหตุการณ์ AI จะคิดเองต่อจากฉากก่อน':'')]);
+  else if(n===1)o.push(['wn','เรื่องทีละฉากต้องมีอย่างน้อย 2 ฉาก หรือกด "ล้างทั้งหมด"']);
+  else o.push(['wn','ยังไม่ได้เขียนฉาก AI จะแต่งฉากเองจากเรื่องย่อ และลูกเล่นต้องกรอก 2 จาก 3 ช่อง ('+t+'/3)']);
+ }else if(t<2)o.push(['wn','ลูกเล่นกรอก 2 จาก 3 ช่องก่อน ('+t+'/3)']);
+ o.push(cast.length?['ok','ตัวละคร '+cast.length+' ตัว ('+cast.map(c=>c.name).join(', ')+')']:['wn','ยังไม่มีตัวละคร AI จะออกแบบเอง']);
+ if(fmt==='film')o.push(say?['ok','มีบทพูดใน '+say+' ฉาก']:['wn','ยังไม่มีบทพูด คลิปจะใช้ภาพและเสียงบรรยากาศ']);
+ const box=$('hChecks'),h=o.map(x=>'<div class="'+x[0]+'">'+(x[0]==='ok'?'✓ ':'⚠ ')+x[1].replace(/</g,'&lt;')+'</div>').join('');if(box.dataset.h!==h){box.dataset.h=h;box.innerHTML=h}
+ const parts=Number($('partsSel').value||0);
+ $('hSum').innerHTML=(cg>=0?'<b>'+GN[cg][0]+'</b> · ':'')+cast.length+' ตัวละคร · <b>'+(fmt==='film'&&n>=2?n+' ฉาก':parts+' คลิป')+'</b> · ใช้ประมาณ <b>'+(typeof costOf==='function'?costOf():'-')+'</b> เครดิต';
+}
+let _dc=0;const sched=()=>{clearTimeout(_dc);_dc=setTimeout(drawChecks,30)};
+$('hlp').addEventListener('input',sched);$('hlp').addEventListener('click',sched);$('partsSel').addEventListener('change',sched);
+drawChecks();loadSeries();
+})();
+$('goBtn').onclick=async()=>{const story=window.getStory?window.getStory():[];
+ if(story.length===1){toast('เรื่องทีละฉากต้องมีอย่างน้อย 2 ฉาก (หรือกด "ล้างทั้งหมด" ถ้าไม่ใช้)');return}
+ const cp=window.composeTopic?window.composeTopic():{ok:false,msg:'หน้าจอยังโหลดไม่เสร็จ'};
+ if(!cp.ok){toast(cp.msg);const e=cp.focus&&$(cp.focus);if(e)e.scrollIntoView({behavior:'smooth',block:'center'});return}
+ const topic=cp.text;
  if(S&&!(S.conn&&S.conn.ai&&S.conn.ai.length)&&S.settings.ai!=='other'){toast('ยังไม่ได้ล็อกอิน AI — กด "เปิดหน้าเว็บให้ล็อกอิน" ในข้อ 1 ก่อน')}
- $('goBtn').disabled=true;const r=await api('/api/go',{ai:S.settings.ai,parts:Number($('partsSel').value),auto:autoLocal,topic});$('goBtn').disabled=false;if(r.ok){localView=null}poll()};
+ $('goBtn').disabled=true;const r=await api('/api/go',{ai:S.settings.ai,parts:Number($('partsSel').value),auto:autoLocal,topic,cast:(window.getCast?window.getCast():[]),script:(window.getScript?window.getScript():''),story:story,series:(window.getSeriesId&&window.getSeriesId()?{id:window.getSeriesId()}:null),film:!!(window.getFilm&&window.getFilm())});if(window.reloadSeries)window.reloadSeries();$('goBtn').disabled=false;if(r.ok){localView=null}poll()};
 const chipOn=(id,ok,txt)=>{const c=$(id);c.className='chip '+(ok?'ok':'no');c.innerHTML='<i></i>'+txt};
 ['chFlow','chAi'].forEach(id=>$(id).onclick=()=>{if($(id).classList.contains('no'))openLogin()});
 function renderHome(s){

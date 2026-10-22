@@ -92,6 +92,17 @@ try { // เปิดโปรแกรมใหม่ขณะมีงาน�
   if (j && ['work', 'review', 'videos', 'fix', 'stopped'].includes(j.phase)) { job = { ...freshJob(), ...j, phase: 'stopped', msg: 'งานเดิมค้างอยู่ กดทำต่อได้เลย' }; }
 } catch { /* ไม่มีงานค้าง */ }
 
+// ---------- ซีรีส์ (บอทจำตัวละคร สไตล์ โลก และเหตุการณ์แต่ละตอน) เก็บใน data/series.json ----------
+const SERIES_FILE = F('series.json');
+const readSeries = () => { try { const j = JSON.parse(fs.readFileSync(SERIES_FILE, 'utf8')); return Array.isArray(j.list) ? j.list : []; } catch { return []; } };
+const writeSeries = list => { try { fs.writeFileSync(SERIES_FILE, JSON.stringify({ list })); return true; } catch { return false; } };
+function cleanStory(a) {
+  if (!Array.isArray(a)) return [];
+  const t = (v, n) => String(v || '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').trim().slice(0, n);
+  return a.slice(0, 6).map(x => x || {}).map(x => ({ role: t(x.role, 20), place: t(x.place, 100), who: (Array.isArray(x.who) ? x.who : []).slice(0, 4).map(w => t(w, 30)).filter(Boolean), what: t(x.what, 400), mood: t(x.mood, 40), shot: t(x.shot, 60), say: t(x.say, 400), link: !!x.link }))
+    .filter(x => x.place || x.what || x.mood || x.shot || x.say);
+}
+const cleanCast = c => (Array.isArray(c) ? c : []).slice(0, 4).map(x => ({ name: String((x && x.name) || '').slice(0, 40), look: String((x && x.look) || '').slice(0, 160), voice: String((x && x.voice) || '').slice(0, 160) })).filter(x => x.name || x.look || x.voice);
 const readPrompts = () => { try { return fs.readFileSync(F('prompts.txt'), 'utf8'); } catch { return ''; } };
 function writeControl(extra) {
   let c = {}; try { c = JSON.parse(fs.readFileSync(F('control.json'), 'utf8')); } catch { /* ใหม่ */ }
@@ -415,7 +426,7 @@ function publicState() {
   const imgsDone = P ? P.images.filter(x => x.status === 'done').length : 0;
   const vidsDone = P ? P.videos.filter(x => x.status === 'done').length : 0;
   return {
-    version: VERSION, phase: job.phase, msg: job.msg, error: job.error, notice: job.notice, topic: job.topic,
+    version: VERSION, phase: job.phase, film: !!job.film, story: (job.story || []).map(x => ({ role: x.role, place: x.place, what: x.what })), msg: job.msg, error: job.error, notice: job.notice, topic: job.topic,
     plan: P, imgsDone, vidsDone, risks: job.risks, credits: job.credits, stop: job.stop, instruction: job.instruction,
     edit: job.edit, settings, ai: AI_NAME[settings.ai], busy: !!child, log: logLines.slice(-150),
     update: { ...upd.state, auto: settings.autoUpdate, boot: !!process.env.FLOWBOT_BOOT }, sys: SYS, conn, part: partNo, refs: readRefs().map(x => ({ name: x.name, file: x.file, kind: x.kind || 'other', note: x.note || '', on: x.on !== false })), approved: job.approved, flagged: P ? P.images.filter(x => x.flag).map(x => x.name) : [],
@@ -431,6 +442,7 @@ http.createServer(async (req, res) => {
     if (req.method === 'GET' && p === '/api/instruction') return send(res, 200, { text: lib.buildInstruction({ topic: '(พิมพ์หัวข้อเรื่องตรงนี้)', parts: settings.parts, ratio: settings.ratio, seconds: settings.videoSeconds, videoMode: settings.videoMode, refs: activeRefs(), part: partNo }) });
     if (req.method === 'GET' && p === '/api/export-snippet') return send(res, 200, { text: lib.buildExportSnippet({ parts: settings.parts, ratio: settings.ratio, seconds: settings.videoSeconds, videoMode: settings.videoMode, refs: activeRefs() }) });
     if (req.method === 'GET' && p === '/api/state') return send(res, 200, publicState());
+    if (req.method === 'GET' && p === '/api/series') return send(res, 200, { list: readSeries() });
     if (req.method === 'GET' && p.startsWith('/img/')) {
       const f = path.join(IMG, safeName(decodeURIComponent(p.slice(5))));
       if (!fs.existsSync(f)) return send(res, 404, 'no');
@@ -444,11 +456,45 @@ http.createServer(async (req, res) => {
       if (b.login) settings.login = { ...settings.login, ...b.login };
       saveSettings(); return send(res, 200, { ok: true, settings });
     }
+    if (p === '/api/series-save') { // สร้าง/แก้ซีรีส์
+      const list = readSeries(); const name = String(b.name || '').trim().slice(0, 60);
+      if (!name) return send(res, 200, { ok: false, error: 'ใส่ชื่อซีรีส์ก่อน' });
+      let s = b.id ? list.find(x => x.id === b.id) : null;
+      if (!s) { s = { id: 's' + Date.now().toString(36), eps: [], at: new Date().toISOString() }; list.push(s); if (list.length > 30) list.shift(); }
+      s.name = name; s.cast = cleanCast(b.cast); s.style = String(b.style || '').slice(0, 120); s.genre = String(b.genre || '').slice(0, 40); s.world = String(b.world || '').slice(0, 200);
+      return send(res, 200, { ok: writeSeries(list), series: s });
+    }
+    if (p === '/api/series-del') { const list = readSeries().filter(x => x.id !== b.id); return send(res, 200, { ok: writeSeries(list) }); }
+    if (p === '/api/series-ep') { // แก้สรุปเหตุการณ์ของตอน / ลบตอน
+      const list = readSeries(); const s = list.find(x => x.id === b.id); if (!s) return send(res, 200, { ok: false });
+      const i = s.eps.findIndex(e => e.n === Number(b.n)); if (i < 0) return send(res, 200, { ok: false });
+      if (b.del) s.eps.splice(i, 1); else s.eps[i].summary = String(b.summary || '').slice(0, 400);
+      return send(res, 200, { ok: writeSeries(list), series: s });
+    }
     if (p === '/api/go') { // หน้าแรก: พิมพ์หัวข้อ → ให้ AI เขียน prompt
       if (child) return send(res, 200, { ok: false, busy: true, error: 'บอทกำลังทำงานอย่างอื่นอยู่ (' + (childKind || 'งานเดิม') + ') — รอให้เสร็จ หรือกด "หยุด" ก่อน แล้วลองใหม่' });
       settings.ai = b.ai || settings.ai; settings.parts = Number(b.parts) || settings.parts; settings.auto = !!b.auto; saveSettings();
-      job = freshJob(); job.topic = String(b.topic || '').slice(0, 500); logLines = [];
-      const ins = lib.buildInstruction({ topic: job.topic, parts: settings.parts, ratio: settings.ratio, seconds: settings.videoSeconds, videoMode: settings.videoMode, refs: activeRefs(), part: partNo });
+      job = freshJob(); job.topic = String(b.topic || '').slice(0, 1500); logLines = [];
+      const film = !!b.film; job.film = film; // โหมดหนังสั้น: สตอรี่บอร์ดรายฉาก + วิดีโอแบบองค์ประกอบ
+      if (film) { if (!settings._forcedIng) { settings._prevMode = settings.videoMode; settings._forcedIng = true; } settings.videoMode = 'ingredients'; }
+      else if (settings._forcedIng) { settings.videoMode = settings._prevMode || 'auto'; settings._forcedIng = false; }
+      saveSettings();
+      let cast = cleanCast(b.cast);
+      let seriesCtx = null;
+      if (b.series && b.series.id) { // ทำตอนใหม่ของซีรีส์: ใส่สมุดซีรีส์ให้ AI และบันทึกตอนนี้ไว้
+        const list = readSeries(); const s = list.find(x => x.id === b.series.id);
+        if (s) {
+          if (!cast.length) cast = s.cast || []; else s.cast = cast;
+          const n = (s.eps.reduce((m, e) => Math.max(m, e.n), 0)) + 1;
+          seriesCtx = { name: s.name, style: s.style, world: s.world, ep: n, recap: s.eps.map(e => ({ n: e.n, summary: e.summary })) };
+          s.eps.push({ n, summary: job.topic.slice(0, 300), at: new Date().toISOString() });
+          writeSeries(list);
+        }
+      }
+      const script = String(b.script || '').slice(0, 1500);
+      const story = cleanStory(b.story); job.story = story;
+      if (story.length >= 2) { settings.parts = story.length; saveSettings(); } // จำนวนท่อน = จำนวนฉากที่ผู้ใช้เขียน
+      const ins = lib.buildInstruction({ topic: job.topic, cast, script, story, series: seriesCtx, film, parts: settings.parts, ratio: settings.ratio, seconds: settings.videoSeconds, videoMode: settings.videoMode, refs: activeRefs(), part: partNo });
       if (settings.ai === 'other') { clipLast = null; setPhase('waitclip', { instruction: ins }); return send(res, 200, { ok: true }); }
       setPhase('asking', { msg: `${AI_NAME[settings.ai]} กำลังเขียน prompt ให้…` });
       askAI(ins, 2 * settings.parts + 2, (err, text) => { if (err) return setPhase('error', { error: err }); ingest(text, AI_NAME[settings.ai], true); });

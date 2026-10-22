@@ -1,7 +1,7 @@
 {
-  "rev": 10,
-  "notes": "หาปุ่มตั้งค่า/สร้าง/ช่องพิมพ์ด้วยชื่อคลาส ไม่ขึ้นกับภาษาของ Flow",
-  "at": "2026-10-21T05:16:56.573Z",
+  "rev": 24,
+  "notes": "หน้าช่วยคิดเรื่องแบบใหม่เป็นโหมดหลัก (ฉากทีละฉาก ตัวละครแยกกล่อง) · เวอร์ชันทดสอบ ยังไม่สมบูรณ์",
+  "at": "2026-10-22T11:43:00.927Z",
   "files": {
     "selectors.json": {
       "sha256": "61ab079d2f5f3a19bc63e413495b24506272c2a4f48c0e9643a6ce5429a498f9"
@@ -10,16 +10,16 @@
       "sha256": "3741bf4a6e1748f139eafb1c50638937968ceae4e5fcaad464a9fb3a651ebace"
     },
     "lib.js": {
-      "sha256": "14c6454f795c43388fafbe5ceea05e814ee7497679f74f67a7b14667451d51f6"
+      "sha256": "ec4fe89777742ed38156ee14e6d38ee86b9a8a24414c2c64a295ee475b33d2f9"
     },
     "run.js": {
-      "sha256": "5549e6da3f6b3064184accceac2459cbcf65a529da908e56ec305d6356ae12da"
+      "sha256": "37d151d83cc79fd208444d5833459ef05a3f3bc2ceafce041cd0d4b08a642956"
     },
     "server.js": {
-      "sha256": "881ded1532cf87c644f847b657a30f4e195bc7bf22134c0eb1ce46ea97f83256"
+      "sha256": "f44d0398c9ad4383bb3c03a2b6cf1a0f5220fc48e4f1e275d01a43a39fe740b5"
     },
     "ui.html": {
-      "sha256": "f5fccafbe9a4ee4444e8c4cbe5e729c345f469f8f8ac1a39d087da3f7189d790"
+      "sha256": "cd13edf299e785a36a492de3dc38b8435082dcd55664b5685e40f9e2f8d88136"
     }
   }
 }
