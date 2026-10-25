@@ -36,7 +36,8 @@ const STATE_FILE = path.join(DATA, 'state.json');
 let state = { tag: '', imgs: {}, vids: {} };
 function loadState() { try { state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')); } catch { /* ใหม่ */ } state.imgs = state.imgs || {}; state.vids = state.vids || {}; }
 function saveState() { fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2)); }
-const keyOf = n => String(n || '').trim().toLowerCase();
+const normKey = n => String(n || '').toLowerCase().replace(/[^a-z0-9 ก-๙]/g, '').replace(/\s+/g, ' ').trim(); // ชื่อมาตรฐาน: ตัดอักขระพิเศษ (+ _ - ฯลฯ) ให้ชื่อเดียวกันตรงกันเสมอ
+const keyOf = n => normKey(n);
 // ชื่อจริงของรูป (รวมเวอร์ชัน) ที่ใช้ค้นในไลบรารี Flow — ถ้าไม่ใช่รูปที่บอทเจนเอง คืนชื่อเดิม
 function resolveName(name) { const s = state.imgs[keyOf(name)]; return s && s.done && s.base ? s.base : s && s.prev ? s.prev : name; }
 const sendEv = (tag, ...a) => console.log('@@' + tag + ' ' + a.join(' '));
@@ -60,6 +61,8 @@ function findImage(name) {
   const n = name.trim().toLowerCase();
   const sn = safeName(name.trim()).toLowerCase(); // ไฟล์ที่บอทบันทึกเองเปลี่ยนอักขระพิเศษ (เช่น +) เป็น _
   const exact = files.find(f => f.toLowerCase() === n || f.toLowerCase() === sn) || files.find(f => { const b = path.parse(f).name.toLowerCase(); return b === n || b === sn; });
+  const nn = normKey(name); const exact0 = exact || files.find(f => normKey(path.parse(f).name) === nn || normKey(f) === nn); // ชื่อต่างกันแค่อักขระพิเศษ/ช่องว่าง ก็ถือว่าตรงกัน
+  if (exact0) return exact0;
   if (exact) return exact;
   // ชื่อใกล้เคียง: เลือกอันที่ความยาวชื่อใกล้ที่สุด (เช่น "character" ต้องได้ characterpng ไม่ใช่ "Character Sheet A-xxxx" ที่บอทเจนไว้) และให้รูปที่ผู้ใช้อัปโหลดเองมาก่อน
   let userFiles = [];

@@ -321,6 +321,7 @@ ${part > 1 ? '1) (ข้ามขั้น Character Sheet — ใช้ขอ�
 ${imgStep}
 ${vidStep}
 4) ถ้ามีบล็อกสไตล์ ให้ขึ้นต้นว่า "STYLE:" (ระบบจะข้าม ไม่นับเป็นขั้นตอน) และใส่ข้อความ STYLE ไว้ท้าย prompt แต่ละอันเอง
+5) ชื่อรูปในแท็ก (เช่น [รูป L3 หน้าร้านกับรถ]) ใช้ได้เฉพาะตัวอักษร ตัวเลข และช่องว่าง ห้ามมีเครื่องหมาย + / \\ : * ? " < > | & , และต้องสะกดเหมือนเดิมเป๊ะทุกที่ที่อ้างถึงใน [แนบ: …]
 
 ${STORY_RULES}
 
@@ -519,6 +520,7 @@ ${part > 1 ? '1) (skip the Character Sheet step — reuse the existing one)' : p
 ${imgStep}
 ${vidStep}
 4) If there is a style block, start it with "STYLE:" (the system skips it as a step) and put the STYLE text at the end of each prompt yourself.
+5) Image names inside tags (e.g. [Image L3 Storefront and Car]) may use only letters, digits and spaces — never + / \\ : * ? " < > | & , — and must be spelled identically everywhere they are referenced in [attach: …].
 
 ${STORY_RULES_EN}
 

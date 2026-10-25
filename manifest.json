@@ -1,7 +1,7 @@
 {
-  "rev": 27,
-  "notes": "rev27: fix image names with special chars (+)",
-  "at": "2026-10-25T03:54:08.875Z",
+  "rev": 29,
+  "notes": "rev28: unified image-name matching + plain names rule",
+  "at": "2026-10-25T04:04:21.451Z",
   "files": {
     "selectors.json": {
       "sha256": "61ab079d2f5f3a19bc63e413495b24506272c2a4f48c0e9643a6ce5429a498f9"
@@ -10,10 +10,10 @@
       "sha256": "3741bf4a6e1748f139eafb1c50638937968ceae4e5fcaad464a9fb3a651ebace"
     },
     "lib.js": {
-      "sha256": "73d4ad80c36707a28787baaa5e354cf7531055bad5cc3b976e7558de5ab77cf6"
+      "sha256": "86520d79182bd934db648b6dbe8278376bf0392a377be08984515cf2d7603530"
     },
     "run.js": {
-      "sha256": "84789f458167d9115ff2fc611effda503e8ab785eaf272a6a6dfd6ff4e764529"
+      "sha256": "5245d99485f00b0f209d6006e9e08ac27e889fdac1b5fedfd7c508363142c51b"
     },
     "server.js": {
       "sha256": "2a6638dc5f4f49d064ed5c2b92d2acfd934b6c2b9cbecf5e0efefb761e36f896"
