@@ -1,7 +1,7 @@
 {
-  "rev": 26,
-  "notes": "rev26: fix attach names containing +",
-  "at": "2026-10-25T03:27:13.849Z",
+  "rev": 27,
+  "notes": "rev27: fix image names with special chars (+)",
+  "at": "2026-10-25T03:54:08.875Z",
   "files": {
     "selectors.json": {
       "sha256": "61ab079d2f5f3a19bc63e413495b24506272c2a4f48c0e9643a6ce5429a498f9"
@@ -13,7 +13,7 @@
       "sha256": "73d4ad80c36707a28787baaa5e354cf7531055bad5cc3b976e7558de5ab77cf6"
     },
     "run.js": {
-      "sha256": "37d151d83cc79fd208444d5833459ef05a3f3bc2ceafce041cd0d4b08a642956"
+      "sha256": "84789f458167d9115ff2fc611effda503e8ab785eaf272a6a6dfd6ff4e764529"
     },
     "server.js": {
       "sha256": "2a6638dc5f4f49d064ed5c2b92d2acfd934b6c2b9cbecf5e0efefb761e36f896"

@@ -58,7 +58,8 @@ function findImage(name) {
   let files = [];
   try { files = fs.readdirSync(IMG_DIR); } catch { /* ไม่มีโฟลเดอร์ images */ }
   const n = name.trim().toLowerCase();
-  const exact = files.find(f => f.toLowerCase() === n) || files.find(f => path.parse(f).name.toLowerCase() === n);
+  const sn = safeName(name.trim()).toLowerCase(); // ไฟล์ที่บอทบันทึกเองเปลี่ยนอักขระพิเศษ (เช่น +) เป็น _
+  const exact = files.find(f => f.toLowerCase() === n || f.toLowerCase() === sn) || files.find(f => { const b = path.parse(f).name.toLowerCase(); return b === n || b === sn; });
   if (exact) return exact;
   // ชื่อใกล้เคียง: เลือกอันที่ความยาวชื่อใกล้ที่สุด (เช่น "character" ต้องได้ characterpng ไม่ใช่ "Character Sheet A-xxxx" ที่บอทเจนไว้) และให้รูปที่ผู้ใช้อัปโหลดเองมาก่อน
   let userFiles = [];
