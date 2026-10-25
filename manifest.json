@@ -1,7 +1,7 @@
 {
-  "rev": 24,
-  "notes": "หน้าช่วยคิดเรื่องแบบใหม่เป็นโหมดหลัก (ฉากทีละฉาก ตัวละครแยกกล่อง) · เวอร์ชันทดสอบ ยังไม่สมบูรณ์",
-  "at": "2026-10-22T11:43:00.927Z",
+  "rev": 26,
+  "notes": "rev26: fix attach names containing +",
+  "at": "2026-10-25T03:27:13.849Z",
   "files": {
     "selectors.json": {
       "sha256": "61ab079d2f5f3a19bc63e413495b24506272c2a4f48c0e9643a6ce5429a498f9"
@@ -10,16 +10,16 @@
       "sha256": "3741bf4a6e1748f139eafb1c50638937968ceae4e5fcaad464a9fb3a651ebace"
     },
     "lib.js": {
-      "sha256": "ec4fe89777742ed38156ee14e6d38ee86b9a8a24414c2c64a295ee475b33d2f9"
+      "sha256": "73d4ad80c36707a28787baaa5e354cf7531055bad5cc3b976e7558de5ab77cf6"
     },
     "run.js": {
       "sha256": "37d151d83cc79fd208444d5833459ef05a3f3bc2ceafce041cd0d4b08a642956"
     },
     "server.js": {
-      "sha256": "f44d0398c9ad4383bb3c03a2b6cf1a0f5220fc48e4f1e275d01a43a39fe740b5"
+      "sha256": "2a6638dc5f4f49d064ed5c2b92d2acfd934b6c2b9cbecf5e0efefb761e36f896"
     },
     "ui.html": {
-      "sha256": "cd13edf299e785a36a492de3dc38b8435082dcd55664b5685e40f9e2f8d88136"
+      "sha256": "72eb362f60f7efdefd2472286e6e82614733caf02fb34aeb501bf005a8ad26f3"
     }
   }
 }

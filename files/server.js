@@ -435,11 +435,12 @@ function publicState() {
 
 http.createServer(async (req, res) => {
   const u = new URL(req.url, 'http://x'); const p = u.pathname;
+  lib.setLang(req.headers['x-lang'] === 'en' ? 'en' : 'th');
   try {
     const origin = req.headers.origin; // กันเว็บอื่นแอบสั่งงานผ่าน localhost
     if (origin && origin !== `http://127.0.0.1:${PORT}` && origin !== `http://localhost:${PORT}`) return send(res, 403, { error: 'forbidden' });
     if (req.method === 'GET' && p === '/') return send(res, 200, fs.readFileSync(path.join(APP, 'ui.html')), 'text/html; charset=utf-8');
-    if (req.method === 'GET' && p === '/api/instruction') return send(res, 200, { text: lib.buildInstruction({ topic: '(พิมพ์หัวข้อเรื่องตรงนี้)', parts: settings.parts, ratio: settings.ratio, seconds: settings.videoSeconds, videoMode: settings.videoMode, refs: activeRefs(), part: partNo }) });
+    if (req.method === 'GET' && p === '/api/instruction') return send(res, 200, { text: lib.buildInstruction({ topic: lib.isEn() ? '(type your topic here)' : '(พิมพ์หัวข้อเรื่องตรงนี้)', parts: settings.parts, ratio: settings.ratio, seconds: settings.videoSeconds, videoMode: settings.videoMode, refs: activeRefs(), part: partNo }) });
     if (req.method === 'GET' && p === '/api/export-snippet') return send(res, 200, { text: lib.buildExportSnippet({ parts: settings.parts, ratio: settings.ratio, seconds: settings.videoSeconds, videoMode: settings.videoMode, refs: activeRefs() }) });
     if (req.method === 'GET' && p === '/api/state') return send(res, 200, publicState());
     if (req.method === 'GET' && p === '/api/series') return send(res, 200, { list: readSeries() });
@@ -525,7 +526,7 @@ http.createServer(async (req, res) => {
       settings.auto = !!b.auto; saveSettings();
       setPhase('asking', { msg: `ส่งคำสั่งเข้าแชตที่เปิดอยู่ใน ${AI_NAME[settings.ai]} … (เปิดแชต/Project ที่มีเรื่องของคุณไว้ในหน้าต่าง Chrome ของบอท)`, error: '' });
       const note = String(b.note || '').slice(0, 800);
-      const msg = 'ส่งออกให้ FlowBot' + (note ? ' — หมายเหตุ: ' + note : '') + '\n\n' + lib.buildInstruction({ topic: '(ตามเรื่อง ตัวละคร ฉาก และบทที่เราทำไว้ในแชต/โปรเจ็กต์นี้ — ห้ามคิดเรื่องใหม่ ห้ามเปลี่ยนดีไซน์ตัวละคร)', parts: settings.parts, ratio: settings.ratio, seconds: settings.videoSeconds, videoMode: settings.videoMode, refs: activeRefs(), part: partNo });
+      const msg = (lib.isEn() ? 'Export for FlowBot' + (note ? ' — note: ' + note : '') : 'ส่งออกให้ FlowBot' + (note ? ' — หมายเหตุ: ' + note : '')) + '\n\n' + lib.buildInstruction({ topic: lib.isEn() ? '(per the story, characters, scenes and script we built in this chat/project — do not invent a new story, do not change the character design)' : '(ตามเรื่อง ตัวละคร ฉาก และบทที่เราทำไว้ในแชต/โปรเจ็กต์นี้ — ห้ามคิดเรื่องใหม่ ห้ามเปลี่ยนดีไซน์ตัวละคร)', parts: settings.parts, ratio: settings.ratio, seconds: settings.videoSeconds, videoMode: settings.videoMode, refs: activeRefs(), part: partNo });
       addLog('ส่งคำสั่งส่งออกเข้าแชตที่เปิดอยู่ → ' + AI_NAME[settings.ai]);
       askAI(msg, 1, (err, out) => {
         if (err) return setPhase('error', { error: `ส่งเข้าแชตที่เปิดอยู่ไม่สำเร็จ: ${err}`, msg: '' });

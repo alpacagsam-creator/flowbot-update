@@ -19,11 +19,12 @@ function parseTag(text) {
 }
 
 function parseBlock(block) {
+  block = String(block || '').replace(/\[\s*attach(?:ed)?\s*:/gi, '[แนบ:');
   const images = [];
   // มาร์กเกอร์แนบภาพ [แนบภาพ @: ชื่อ] / [แนบ: ชื่อ1, ชื่อ2] อยู่ตรงไหนของข้อความก็ได้ (สกิลบางตัวใส่ไว้ต้น prompt บรรทัดเดียวกัน)
   const cleaned = block.replace(/\[แนบ(?:ภาพ)?\s*@?\s*:\s*([^\]\n]*)\][ \t]*/g, (_, list) => {
     // AI บางตัว (Gemini) ใส่คำนำหน้า "รูป"/"ภาพ" ติดมากับชื่อ เช่น [แนบ: รูป Character Sheet น้อง] → ตัดออก ให้ตรงกับแท็ก [รูป Character Sheet น้อง]
-    list.split(/[,+]/).map(x => x.trim().replace(/^(?:รูปภาพ|รูป|ภาพ|image|img)\s+(?=\S)/i, '').trim()).filter(Boolean).forEach(n => images.push(n));
+    list.split(/,|\s\+\s/).map(x => x.trim().replace(/^(?:รูปภาพ|รูป|ภาพ|image|img)\s+(?=\S)/i, '').trim()).filter(Boolean).forEach(n => images.push(n));
     return '';
   }).replace(/\n{3,}/g, '\n\n').trim();
   const t = parseTag(cleaned);
@@ -58,7 +59,7 @@ function inferPipeline(segs) {
 
 // แปลงข้อความจาก AI (มี ```บล็อกโค้ด``` แยกต่อ segment) เป็นรูปแบบ prompts.txt: segment คั่นด้วย ---
 function normalizePrompts(raw) {
-  raw = String(raw || '').replace(/\r\n/g, '\n').trim();
+  raw = String(raw || '').replace(/\[\s*attach(?:ed)?\s*:/gi, '[แนบ:').replace(/\r\n/g, '\n').trim();
   const fence = /```[^\n]*\n([\s\S]*?)```/g;
   const blocks = []; let m, prevEnd = 0;
   while ((m = fence.exec(raw))) {
@@ -189,7 +190,7 @@ function riskScan(raw) {
 // refs: [{ name, kind: 'person'|'product'|'place'|'other', note }] หรือ [ชื่อ] แบบเก่า
 const REF_KIND = { person: 'คน', product: 'สินค้า', place: 'สถานที่/ฉาก', outfit: 'ชุด/เสื้อผ้า', other: 'รูปอ้างอิง' };
 const normRefs = refs => (refs || []).map(r => (typeof r === 'string' ? { name: r } : r)).filter(r => r && r.name);
-function refsBlock(refs) {
+function refsBlockTH(refs) {
   refs = normRefs(refs);
   if (!refs.length) return '';
   const has = k => refs.some(r => r.kind === k);
@@ -296,7 +297,7 @@ ${recap ? 'เหตุการณ์ที่เกิดขึ้นแล้
 - ท่อนสุดท้ายของตอนควรจบด้วยภาพหรือเหตุการณ์ที่ค้างให้อยากดูตอนต่อไป`;
 }
 
-function buildInstruction({ topic, cast = [], script = '', story = [], series = null, film = false, parts = 4, ratio = '9:16', seconds = 10, videoMode = 'auto', refs = [], part = 1 } = {}) {
+function buildInstructionTH({ topic, cast = [], script = '', story = [], series = null, film = false, parts = 4, ratio = '9:16', seconds = 10, videoMode = 'auto', refs = [], part = 1 } = {}) {
   const n = Math.max(1, Number(parts) || 4);
   const ks = Array.from({ length: n + 1 }, (_, i) => 'K' + i).join(', ');
   const ing = film || videoMode === 'ingredients';
@@ -329,7 +330,7 @@ ${SAFE_RULES}
 }
 
 // ให้ AI จัดข้อความที่บอทอ่านไม่ออก ให้เป็นรูปแบบที่บอทอ่านได้ (ไม่แก้เนื้อหา แค่จัดโครงสร้าง + ติดแท็ก)
-function buildConvert(text, refs) {
+function buildConvertTH(text, refs) {
   return `ด้านล่างคือข้อความสำหรับทำคลิปใน Google Flow (อาจเป็น prompt สำเร็จรูป หรือเป็นแค่คำบรรยายฉาก/เรื่องเป็นภาษาไทย) บอทอ่านรูปแบบไม่ออก ช่วยจัดเป็น "แผนเดียว" ตามโครงสร้างนี้:
 - ถ้าต้นฉบับเป็น prompt สำเร็จรูปอยู่แล้ว "ห้ามแก้เนื้อหา prompt, บทพากย์ หรือ STYLE" เปลี่ยนแค่โครงสร้าง · ถ้าเป็นแค่คำบรรยายฉาก ให้เขียนเป็น prompt ภาษาอังกฤษที่ละเอียดพอสำหรับ Flow (ตัวละคร ฉาก แสง การเคลื่อนไหว กล้อง สไตล์) โดยเก็บบทพากย์ภาษาไทยไว้ในเครื่องหมายคำพูดตามต้นฉบับ
 - ทุก prompt = 1 กล่องโค้ด (\`\`\`) เรียงตามลำดับการทำงานจริง: รูปทั้งหมดก่อน แล้วค่อยวิดีโอ
@@ -347,8 +348,8 @@ ${String(text).slice(0, 60000)}
 }
 
 // คำสั่งถาวรสั้นๆ ให้ลูกค้าแปะใน Project / Custom instructions ของ AI ตัวเองครั้งเดียว แล้วพิมพ์ "ส่งออกให้ FlowBot" ตอนจะสร้างคลิป
-function buildExportSnippet(opts = {}) {
-  const body = buildInstruction({ ...opts, topic: '(ตามเรื่อง ตัวละคร ฉาก และบทที่เราทำไว้ในโปรเจ็กต์/แชตนี้ — ห้ามคิดเรื่องใหม่ ห้ามเปลี่ยนดีไซน์ตัวละคร)' });
+function buildExportSnippetTH(opts = {}) {
+  const body = buildInstructionTH({ ...opts, topic: '(ตามเรื่อง ตัวละคร ฉาก และบทที่เราทำไว้ในโปรเจ็กต์/แชตนี้ — ห้ามคิดเรื่องใหม่ ห้ามเปลี่ยนดีไซน์ตัวละคร)' });
   return `[คำสั่งถาวร — สำหรับส่งงานเข้าโปรแกรม FlowBot]
 เมื่อฉันพิมพ์ว่า "ส่งออกให้ FlowBot" ให้ทำตามคำสั่งด้านล่างทันที โดยใช้เรื่อง ตัวละคร ฉาก และบทที่เราคุยและตกลงกันไว้ในโปรเจ็กต์/แชตนี้เป็นต้นฉบับ
 ถ้าฉันไม่ได้พิมพ์คำนั้น ให้ทำงานตามปกติของโปรเจ็กต์นี้ ไม่ต้องใช้รูปแบบนี้
@@ -357,7 +358,7 @@ function buildExportSnippet(opts = {}) {
 ${body}`;
 }
 
-function buildLighten(raw) {
+function buildLightenTH(raw) {
   return `ด้านล่างคือ prompt สำหรับ Google Flow ที่อาจมีคำเสี่ยงโดนปฏิเสธ ช่วยปรับให้เบาลงและปลอดภัยขึ้น โดย
 - คงแท็กบรรทัดแรก ([รูป …], [วิดีโอ …], [แนบ: …]) และโครงสร้างเดิมทุกกล่องให้เหมือนเดิมเป๊ะ
 - ปรับเฉพาะเนื้อหาที่รุนแรง/เสี่ยง ให้เล่าเป็นสัญลักษณ์นุ่มๆ (ห้ามเปลี่ยนสไตล์ภาพเดิม เช่น ภาพสมจริงก็ยังสมจริง)
@@ -369,7 +370,7 @@ ${SAFE_RULES}
 ${toFenced(raw)}`;
 }
 
-function buildFixOne(block, why) {
+function buildFixOneTH(block, why) {
   return `Google Flow ปฏิเสธ prompt ด้านล่างนี้${why ? ' (ข้อความจาก Flow: ' + why + ')' : ''} ช่วยเขียนใหม่ให้เบาลงและปลอดภัยขึ้น โดย
 - คงบรรทัดแท็กด้านบน ([รูป …] / [วิดีโอ …] / [แนบ: …]) ไว้เหมือนเดิมเป๊ะ
 - คงโครงสร้าง ความยาว บทพากย์ และ STYLE เดิม เปลี่ยนเฉพาะส่วนที่น่าจะโดนปฏิเสธ
@@ -390,4 +391,195 @@ function replaceSegment(raw, n, newBlock) {
   return blocks.join('\n\n---\n\n');
 }
 
-module.exports = { refsBlock, normRefs, REF_KIND, parseTag, parseBlock, splitBlocks, parseSegments, inferPipeline, normalizePrompts, countSegs, planOf, creditPerVideo, estimateCredits, riskScan, buildInstruction, buildExportSnippet, buildConvert, buildLighten, buildFixOne, replaceSegment, toFenced };
+// ================= English mode (lang='en') =================
+let LANG = 'th';
+const setLang = l => { LANG = l === 'en' ? 'en' : 'th'; };
+const EN_REF_KIND = { person: 'person', product: 'product', place: 'place/set', outfit: 'outfit/clothing', other: 'reference image' };
+function refsBlockEN(refs) {
+  refs = normRefs(refs);
+  if (!refs.length) return '';
+  const has = k => refs.some(r => r.kind === k);
+  const rows = refs.map(r => `- image name: "${r.name}" | type: ${EN_REF_KIND[r.kind] || 'reference image'}${r.note ? ' | description: ' + String(r.note).slice(0, 120) : ''}`);
+  return `
+
+Real photos the user has already uploaded to the bot (do NOT write prompts that recreate these; just reference them by name inside [attach: …]. Use ONLY the exact text in quotes after "image name:", e.g. [attach: ${refs[0].name}] — never add the type or a description after the name):
+${rows.join('\n')}
+How to use the real photos:
+- Every image box and video box that shows a person/product/outfit/place from this list MUST include that name in [attach: …] every time (not just the first box).${has('person') ? `
+- Person: use the photo instead of a Character Sheet for that person (never make a new Character Sheet for someone with a real photo). In the prompt write "the same person as in the attached photo — same face, hairstyle and skin tone" and do not describe the face again.` : ''}${has('product') ? `
+- Product: in the prompt write "exactly the product in the attached photo — same shape, color, label and logo". Do not change shape, color or label, and do not add new text on the product.` : ''}${has('outfit') ? `
+- Outfit: the character wears the outfit from the attached photo, identical in every box.` : ''}
+- Unless the user asks for another style, make the images look realistic like the attached photos (not cartoon).
+- If the story does not use an image in the list, do not attach it.`;
+}
+const STORY_RULES_EN = `Short-film quality rules (so it feels like a real drama):
+- Pacing: first part sets up the situation and characters → middle part adds a problem or rising tension → last part gives a resolution or a memorable closing image. One main event per part; never cram several events into one part.
+- The end of each part must be a state the next part can start from directly (same position, posture, mood, light). No jumps in time, place or clothing without a reason in the story.
+- Characters must look identical in every box (face, hair, outfit, held items): in every prompt, repeat a short description of each character (age, hair, outfit). Never use just "he" or "she".
+- Emotion is the heart: set a main emotion for each part (e.g. wary, startled, sad, relieved) and escalate it smoothly across parts, no unmotivated swings.
+- Every video prompt must describe the performance visually: facial expression (brows, eyes, mouth), where the eyes look, body posture, breathing/hesitation changing with the emotion. Never write just "looks sad" — say how it shows. Characters never stand frozen.
+- Voice: define each character's voice once (age, pitch, quality) and reuse that exact text in every part where the character speaks. Every line must say how it is delivered according to the emotion (e.g. shaky whisper, faster when startled, voice fading when sad, a pause) — written in English before the quoted line.
+- Walking/movement direction (very important — video AI often makes characters walk backwards or float): whenever a character walks, runs or moves, the video prompt must state clearly (1) where the camera is relative to the character, e.g. "camera behind him, we see his back" / "camera at his side" / "camera in front of him"; (2) that the character always faces the direction of travel: "walks forward, facing the direction he is moving, never walking backwards"; (3) the direction relative to the camera, e.g. "walks away from the camera into the shop" or "walks toward the camera". Never let the camera move backwards while the character walks toward it unless the user asks. If a scene opens with a character entering a place, use a camera behind or beside them as they walk in (unless the user says otherwise), and the Scene image for that scene must stage the character facing the same direction.
+- Alternate shot sizes (wide/medium/close) according to emotion; one slow camera move per part.
+- Light, color tone and visual style stay constant for the whole story; change only when story time truly changes.
+- Any narration or dialogue must sound natural, short, match the picture of that part, and never repeat what is already visible.`;
+const SAFE_RULES_EN = `Content rules (important so Google Flow does not refuse):
+- Visual style: follow what the user or the existing prompt specifies; never change the style of an existing prompt. If none is specified, pick ONE style that suits the story and use it in every box: people/drama/short film/product review = cinematic realistic · kids' stories = soft 3D cartoon (do not choose cartoon on your own just because no style was given).
+- No blood, wounds, corpses, weapons, violence, self-harm, sexual content or drugs.
+- Never put real people's or celebrities' names in a prompt; use neutral wording instead, e.g. "an Italian runner".
+- Sensitive topics (epidemics, war, disasters): tell them with soft symbols such as empty streets or people in masks; never show victims.
+- No text, watermarks or logos in the image.`;
+function castBlockEN(cast) {
+  cast = (cast || []).filter(c => c && (c.name || c.look || c.voice));
+  if (!cast.length) return '';
+  const rows = cast.map((c, i) => `- Character ${i + 1}: ${c.name || '(unnamed)'} | look: ${c.look || '(AI designs it, then keeps it identical in every box)'} | voice: ${c.voice || '(AI defines it, then keeps it identical in every box)'}`);
+  return `
+
+Characters defined by the user (use exactly as given; never change the look or voice):
+${rows.join('\n')}
+Rules for these characters:
+- Make one [Image Character Sheet Name] box per character, using the given look (except characters that have a real photo in the photo list).
+- Every prompt that shows this character must repeat the given look in full.
+- Every spoken line must say who speaks, and include the defined "voice" text in English, identical each time that character speaks, followed by how it is delivered for that scene's emotion, and only then the quoted line.
+- If several characters are in the same part, make clear which line belongs to whom, and the voices must differ as defined.`;
+}
+function scriptBlockEN(script) {
+  script = String(script || '').trim();
+  if (!script) return '';
+  return `
+
+Dialogue defined by the user (in speaking order, format "Name: line"):
+${script}
+Rules for the dialogue:
+- Use these exact words. Do not edit, add, remove or reorder any of the user's sentences.
+- Split the dialogue across the parts in order, at most about 20-24 words per part (a sentence that does not fit goes to the next part — never shorten a sentence).
+- Place each part's lines to match that part's picture and emotion, naming the speaker and delivery per the voice rules.
+- If the user gave no dialogue for a part, that part has none (tell it with picture and ambient sound); never invent lines.`;
+}
+function storyBlockEN(story) {
+  story = (story || []).filter(x => x && (x.what || x.place || x.say || x.mood || x.shot));
+  if (!story.length) return '';
+  const rows = story.map((x, i) => {
+    const say = x.say ? '\n   Dialogue for this scene (use these exact words):\n' + String(x.say).split(/\n/).filter(Boolean).map(l => '   ' + l).join('\n') : '\n   Dialogue: none (tell it with picture and ambient sound)';
+    return `Scene ${i + 1}${x.role ? ' [' + x.role + ']' : ''}
+   Where/when: ${x.place || '(AI chooses to suit the story)'}
+   Who is in the scene: ${(x.who || []).length ? x.who.join(', ') : '(per the story)'}
+   What happens: ${x.what || '(AI continues from the previous scene to suit the story)'}
+   Continues from previous scene: ${i > 0 && x.link ? 'YES — same place, same set, continuous' : 'No (new independent image)'}
+   Mood of the scene: ${x.mood || '(per the story)'}
+   Shot/camera angle: ${x.shot || '(AI chooses to suit the mood)'}${say}`;
+  });
+  return `
+
+Scene-by-scene story written by the user (${story.length} scenes = ${story.length} parts):
+${rows.join('\n')}
+Rules for this story:
+- Follow it in order: scene i = [Image Scene i] = [Video S i]. Never swap, skip or merge scenes; never change the user's places and events.
+- You may add visual detail (posture, expression, light, props, camera move) but never add events or characters the user did not write.
+- For a scene marked "Continues from previous scene: YES": [Image Scene i] must have an attach line [attach: Scene (i-1), Character Sheet of the characters in that scene] and the prompt must start with "Recreate the attached scene exactly — same location, same set and props, same lighting and time of day, same art style. Change only:" followed by only what changes (shot size/camera angle, character pose and expression, character position). The video of that scene must start from the pose and position where the previous scene ended.
+- A scene marked "No" is a new independent image; no Recreate.
+- If the synopsis, gimmicks or topic above conflict with the user's scenes, the user's scenes win.
+- Fields the user left blank: choose what suits the story and continues from the previous scene.
+- A scene's dialogue goes only into that scene's video, word for word, per the character voice rules. If a scene has no dialogue, do not invent any.`;
+}
+function seriesBlockEN(s) {
+  if (!s) return '';
+  const recap = (s.recap || []).filter(e => e && e.summary).map(e => `- Episode ${e.n}: ${e.summary}`).join('\n');
+  return `
+
+This is the series "${s.name}", episode ${s.ep}${s.style ? '\nVisual style of the series (do not change): ' + s.style : ''}${s.world ? '\nMain world/location of the series: ' + s.world : ''}
+${recap ? 'What already happened in earlier episodes (the new episode must continue consistently, no contradictions, no retelling):\n' + recap : 'This is the first episode of the series.'}
+Series rules:
+- Episode ${s.ep} continues from the events above; characters carry their feelings and situation over from the previous episode.
+- Every character must keep exactly the same look and voice as in the character list; make this episode's Character Sheets from that same look text every episode.
+- The last part of the episode should end on an image or event that leaves viewers wanting the next episode.`;
+}
+function buildInstructionEN({ topic, cast = [], script = '', story = [], series = null, film = false, parts = 4, ratio = '9:16', seconds = 10, videoMode = 'auto', refs = [], part = 1 } = {}) {
+  const n = Math.max(1, Number(parts) || 4);
+  const ks = Array.from({ length: n + 1 }, (_, i) => 'K' + i).join(', ');
+  const ing = film || videoMode === 'ingredients';
+  const refLine = refsBlockEN(refs) + castBlockEN(cast) + seriesBlockEN(series) + storyBlockEN(story) + ((story || []).some(x => x && x.say) ? '' : scriptBlockEN(script));
+  const personRef = normRefs(refs).some(r => r.kind === 'person');
+  const partLine = part > 1 ? `\nThis is "part ${part}" of the same story: story/characters/style must continue from the previous part. Do NOT make a new Character Sheet (the system remembers the old one; just reference the Character Sheet name in [attach: …]). Start the first image of this part from the latest event.\n` : '';
+  const words = '(about 20-24 words per part, spoken in English)';
+  const vid = ing
+    ? `3) [Video S1], [Video S2], ... up to [Video S${n}] — "ingredients" mode: the second line of every box is [attach: Character Sheet, (the scene image of that part)]. The video prompt is plain English text starting with "SHOT: Vertical ${ratio}, ${seconds} seconds." Give ONE camera move and the character action. Put any spoken narration/dialogue in quotation marks ${words}. (There can be any number of images in step 2; it need not equal ${n + 1}.)`
+    : `3) [Video S1: K0 → K1], [Video S2: K1 → K2], ... up to [Video S${n}: K${n - 1} → K${n}] — the video prompt is plain English text starting with "SHOT: Vertical ${ratio}, ${seconds} seconds. The shot starts exactly on the start frame and ends exactly on the end frame." Give ONE camera move and the character action. Put any spoken narration/dialogue in quotation marks ${words}.`;
+  const imgStep = film ? `2) [Image Scene 1], [Image Scene 2], ... up to [Image Scene ${n}] (${n} images in total) — this is the "storyboard": the starting image of each scene in story order, 1 scene = 1 image = 1 video
+   - Every image is a fresh image of that scene; do not Recreate the previous image. Place, time, light, shot size and camera angle may change freely with the story, but characters must keep identical face, hair and outfit, and the visual style must be the same in every scene.
+   - The second line of every image is [attach: Character Sheet of the characters in that scene${personRef ? ' or the real photo name of that person' : ''}] (no attach if no character is in the scene), followed by an English prompt covering: place, time, light, characters in the picture (repeat their look), pose and expression, shot size, camera angle, key objects in the scene.` : `2) [Image K0], [Image K1], ... up to [Image K${n}] (${n + 1} images: ${ks}) — ${ing ? 'scene image/keyframe of each part' : 'continuous keyframes'}
+   - Every image except the first gets a second line [attach: K(previous image), Character Sheet${personRef ? ' or the real photo name of that person' : ''}] followed by a prompt of the form "Recreate the attached image exactly — same set, same style. Change only: ..." (state only what changes).`;
+  const vidStep = film ? `3) [Video S1], [Video S2], ... up to [Video S${n}] — "ingredients" mode: the second line of every box is [attach: Character Sheet of the characters in that scene, Scene i] (Scene i is the storyboard image of the same scene). The video prompt is plain English text starting with "SHOT: Vertical ${ratio}, ${seconds} seconds." Give ONE camera move, then describe the action in beats (3-5 beats) with facial expression and posture changing with the emotion. Put any dialogue in quotation marks ${words} following the voice rules. Each scene tells one event that completes within itself, and the next scene continues the story in order.` : vid;
+  return `Help me write prompts for a vertical ${film ? 'short film' : 'clip'} told as a story in Google Flow using the "${ing ? 'ingredients' : 'keyframe'}" method (generate the images first, then make the videos ${ing ? 'by attaching the images as ingredients' : 'using the images as start/end frames'}).
+
+Topic: ${topic || '(the user has not given one — come up with an interesting topic yourself)'}
+Number of parts: ${n} parts (${seconds} seconds each) · aspect ratio ${ratio}${refLine}${partLine}
+Answer in separate "code blocks" (\`\`\`), one block per step, in this order, and **the first line of every block must be a tag**:
+${part > 1 ? '1) (skip the Character Sheet step — reuse the existing one)' : personRef ? '1) (a person who has a real photo in the list above uses that photo instead of a Character Sheet; do not create one). If there are other characters without a real photo, make [Image Character Sheet Name] for them.' : '1) [Image Character Sheet] — a fixed-design picture of the main character (if the story has characters). Write the English prompt after the tag.'}
+${imgStep}
+${vidStep}
+4) If there is a style block, start it with "STYLE:" (the system skips it as a step) and put the STYLE text at the end of each prompt yourself.
+
+${STORY_RULES_EN}
+
+${SAFE_RULES_EN}
+
+Do not put any other text between the boxes and do not add explanations. Answer only with code blocks of plain text; never create or show images in the chat.`;
+}
+function buildConvertEN(text, refs) {
+  return `Below is text for making a clip in Google Flow (it may be a finished prompt, or just a description of scenes/story). The bot cannot read its format. Please arrange it into ONE plan with this structure:
+- If the original is already a finished prompt, do NOT change the prompt content, narration or STYLE; only change the structure. If it is only a scene description, write a detailed English prompt good enough for Flow (character, set, light, motion, camera, style), keeping any spoken narration in quotation marks as in the original.
+- Every prompt = 1 code block (\`\`\`) in real working order: all images first, then the videos.
+- The first line in a block is a tag: image = [Image name], e.g. [Image Character Sheet Name], [Image K0] · ingredients video = [Video S1], [Video S2] ... (1 scene = 1 video) · frames video = [Video S1: K0 → K1] (only if the original asks for frames).
+- The second line, if the prompt needs attached images, is [attach: name1, name2] — each name must be either (a) exactly equal to the [Image …] tag of a box in this plan, or (b) the real photo name of the user in the list below (if any). If the original refers to an image that is neither, change it to the closest-meaning name in the list, or add an [Image …] box that creates it.
+- If there is a main character without a real photo, make [Image Character Sheet Name] boxes, one per character (separate boxes for several characters), first; each video then attaches the Character Sheets only of the characters in that scene (two characters in a scene = attach both).
+- A block that starts only with STYLE: goes at the end of each prompt instead; do not make it its own box.
+- Most important: answer with plain text in code blocks only. Never create, draw or show images/storyboards in the chat (if the text mentions a character sheet, picture or scene, write it as a text prompt, not a drawing). The bot will draw the prompts itself.
+- Important: answer with ONE plan only. No alternatives, no duplicate video numbers, no links, tips or other text outside the code blocks.${refsBlockEN(refs)}
+
+Original text:
+"""
+${String(text).slice(0, 60000)}
+"""`;
+}
+function buildExportSnippetEN(opts = {}) {
+  const body = buildInstructionEN({ ...opts, topic: '(per the story, characters, scenes and script we built in this project/chat — do not invent a new story, do not change the character design)' });
+  return `[Standing instruction — for sending work into the FlowBot program]
+When I type "Export for FlowBot", do what is described below immediately, using the story, characters, scenes and script we discussed and agreed in this project/chat as the source.
+If I don't type that phrase, work as normal for this project and do not use this format.
+
+----- Export instruction -----
+${body}`;
+}
+function buildLightenEN(raw) {
+  return `Below are prompts for Google Flow that may contain words likely to be refused. Please make them lighter and safer by:
+- keeping the first-line tags ([Image …], [Video …], [attach: …]) and the structure of every box exactly the same
+- changing only violent/risky content, retelling it with soft symbols (do not change the existing visual style — realistic stays realistic)
+- keeping the narration, length and STYLE as they are
+- answering with all boxes as code blocks in the original order, no other text
+
+${SAFE_RULES_EN}
+
+${toFenced(raw)}`;
+}
+function buildFixOneEN(block, why) {
+  return `Google Flow refused the prompt below${why ? ' (message from Flow: ' + why + ')' : ''}. Please rewrite it to be lighter and safer by:
+- keeping the tag lines at the top ([Image …] / [Video …] / [attach: …]) exactly the same
+- keeping the structure, length, narration and STYLE; change only the parts likely to be refused
+- answering with a single code block, no other text
+
+${SAFE_RULES_EN}
+
+\`\`\`
+${block}
+\`\`\``;
+}
+
+const refsBlock = refs => LANG === 'en' ? refsBlockEN(refs) : refsBlockTH(refs);
+const buildInstruction = o => LANG === 'en' ? buildInstructionEN(o) : buildInstructionTH(o);
+const buildConvert = (t, r) => LANG === 'en' ? buildConvertEN(t, r) : buildConvertTH(t, r);
+const buildExportSnippet = o => LANG === 'en' ? buildExportSnippetEN(o) : buildExportSnippetTH(o);
+const buildLighten = r => LANG === 'en' ? buildLightenEN(r) : buildLightenTH(r);
+const buildFixOne = (b, w) => LANG === 'en' ? buildFixOneEN(b, w) : buildFixOneTH(b, w);
+
+module.exports = { setLang, isEn: () => LANG === 'en',  refsBlock, normRefs, REF_KIND, parseTag, parseBlock, splitBlocks, parseSegments, inferPipeline, normalizePrompts, countSegs, planOf, creditPerVideo, estimateCredits, riskScan, buildInstruction, buildExportSnippet, buildConvert, buildLighten, buildFixOne, replaceSegment, toFenced };
