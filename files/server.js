@@ -439,7 +439,12 @@ http.createServer(async (req, res) => {
   try {
     const origin = req.headers.origin; // กันเว็บอื่นแอบสั่งงานผ่าน localhost
     if (origin && origin !== `http://127.0.0.1:${PORT}` && origin !== `http://localhost:${PORT}`) return send(res, 403, { error: 'forbidden' });
-    if (req.method === 'GET' && p === '/') return send(res, 200, fs.readFileSync(path.join(APP, 'ui.html')), 'text/html; charset=utf-8');
+    if (req.method === 'GET' && p === '/') {
+      let html = fs.readFileSync(path.join(APP, 'ui.html'), 'utf8');
+      // รุ่นอังกฤษ: ไฟล์ edition.txt (ไม่ถูกอัปเดตทับ) บอกภาษาเริ่มต้น เพื่อไม่ให้อัปเดต ui.html แล้วกลับเป็นไทย
+      try { if (fs.readFileSync(path.join(APP, 'edition.txt'), 'utf8').trim() === 'en') html = html.replace('<meta name="fb-lang" content="th">', '<meta name="fb-lang" content="en">'); } catch { /* ไม่มีไฟล์ = ไทย */ }
+      return send(res, 200, Buffer.from(html, 'utf8'), 'text/html; charset=utf-8');
+    }
     if (req.method === 'GET' && p === '/api/instruction') return send(res, 200, { text: lib.buildInstruction({ topic: lib.isEn() ? '(type your topic here)' : '(พิมพ์หัวข้อเรื่องตรงนี้)', parts: settings.parts, ratio: settings.ratio, seconds: settings.videoSeconds, videoMode: settings.videoMode, refs: activeRefs(), part: partNo }) });
     if (req.method === 'GET' && p === '/api/export-snippet') return send(res, 200, { text: lib.buildExportSnippet({ parts: settings.parts, ratio: settings.ratio, seconds: settings.videoSeconds, videoMode: settings.videoMode, refs: activeRefs() }) });
     if (req.method === 'GET' && p === '/api/state') return send(res, 200, publicState());

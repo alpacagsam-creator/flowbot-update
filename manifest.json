@@ -1,7 +1,7 @@
 {
-  "rev": 29,
-  "notes": "rev28: unified image-name matching + plain names rule",
-  "at": "2026-10-25T04:04:21.451Z",
+  "rev": 32,
+  "notes": "BETA: คลัง Prompt ต่อเรื่อง/ลบ/สลับบท, แก้ข้อความซ้ำ, ทำงานเบื้องหลังได้",
+  "at": "2026-10-28T10:33:48.909Z",
   "files": {
     "selectors.json": {
       "sha256": "61ab079d2f5f3a19bc63e413495b24506272c2a4f48c0e9643a6ce5429a498f9"
@@ -13,13 +13,13 @@
       "sha256": "86520d79182bd934db648b6dbe8278376bf0392a377be08984515cf2d7603530"
     },
     "run.js": {
-      "sha256": "5245d99485f00b0f209d6006e9e08ac27e889fdac1b5fedfd7c508363142c51b"
+      "sha256": "e7a0a569438c3fc2819fec48d9184f89bed8982d70644cba9680de37e1060a58"
     },
     "server.js": {
-      "sha256": "2a6638dc5f4f49d064ed5c2b92d2acfd934b6c2b9cbecf5e0efefb761e36f896"
+      "sha256": "e576a3394bdf4744e62f946943f6941a6bbfeeb080f59cbb73ae1ab85bd5e5d6"
     },
     "ui.html": {
-      "sha256": "72eb362f60f7efdefd2472286e6e82614733caf02fb34aeb501bf005a8ad26f3"
+      "sha256": "656d523a828c4049eb8364f9aae9d2b58ce756487aee81c966cf26cc88f9e7ce"
     }
   }
 }

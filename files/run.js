@@ -599,6 +599,15 @@ async function probePort(port) {
 }
 async function chromeIsUp() { return (await probePort(PORT)) === 'chrome'; }
 
+
+// ===== ทำงานเบื้องหลัง (v-bg): ให้หน้า Flow คิดว่าอยู่หน้าสุดเสมอ แม้ผู้ใช้สลับไปแท็บ/โปรแกรมอื่น =====
+const KEEP_ALIVE_JS = `(()=>{try{Object.defineProperty(document,'hidden',{get:()=>false,configurable:true});Object.defineProperty(document,'visibilityState',{get:()=>'visible',configurable:true});document.hasFocus=()=>true;const stop=e=>e.stopImmediatePropagation();window.addEventListener('visibilitychange',stop,true);document.addEventListener('visibilitychange',stop,true);window.addEventListener('blur',stop,true);}catch(e){}})();`;
+async function keepAlive(page) {
+  try { const cs = await page.context().newCDPSession(page); await cs.send('Emulation.setFocusEmulationEnabled', { enabled: true }); } catch { /* ไม่เป็นไร */ }
+  await page.addInitScript({ content: KEEP_ALIVE_JS }).catch(() => {});
+  await page.evaluate(KEEP_ALIVE_JS).catch(() => {});
+}
+
 async function ensureChrome() {
   if (await chromeIsUp()) return;
   if ((await probePort(PORT)) === 'other') { // พอร์ตถูกโปรแกรมอื่นจองไว้ → หาพอร์ตว่างใหม่
@@ -1219,6 +1228,7 @@ async function runPipeline(page, segments) {
     page = await context.newPage();
     await page.goto(sel.url);
   }
+  await keepAlive(page); // หน้า Flow ทำงานต่อได้แม้ผู้ใช้ไปทำอย่างอื่น ไม่ต้องดึงแท็บขึ้นหน้า
 
   if (process.argv[2] === 'qctest') {
     // ทดสอบระบบตรวจคลิปกับคลิปที่มีอยู่แล้วในโปรเจ็กต์ (ไม่สร้างคลิปใหม่ ไม่เสียเครดิต): qctest <จำนวนคลิป> [ai]
