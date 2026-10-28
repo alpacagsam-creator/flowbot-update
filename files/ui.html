@@ -255,6 +255,30 @@ button:focus-visible,select:focus-visible,.auto:focus-visible{outline:3px solid 
 .foot:hover{background:var(--card);border-color:var(--line);color:var(--ink)}
 #repBtn{color:#ff9a6b;font-weight:700}#riskFoot{color:#a16207}
 .logbox{display:none;max-width:1060px;margin:12px auto 0;background:#10131c;color:#cdd3e6;border-radius:14px;padding:12px;font:12px/1.5 ui-monospace,Consolas,monospace;max-height:240px;overflow:auto;white-space:pre-wrap}
+.ohlp{border:1.5px solid var(--line);border-radius:16px;background:var(--card);padding:14px 14px 12px;margin:0 0 12px}
+.ohlp .tip{display:flex;gap:8px;font-size:12.5px;color:var(--warn);background:var(--warn-soft);border-radius:12px;padding:9px 12px;margin-bottom:12px;line-height:1.5}
+.ohlp h4{font-size:13px;margin:12px 0 6px;color:var(--ink2)}
+.ohlp .gn{display:flex;gap:6px;flex-wrap:wrap}
+.ohlp .gn button{border:1.5px solid var(--line2);background:var(--card);border-radius:99px;padding:6px 13px;font:inherit;font-size:13px;font-weight:600;color:var(--ink2);cursor:pointer}
+.ohlp .gn button:hover{border-color:var(--pri);color:var(--pri)}
+.ohlp .gn button.on{border-color:var(--pri);background:var(--pri-soft);color:var(--pri)}
+.ohlp input[type=text]{width:100%;border:1.5px solid var(--line2);border-radius:12px;padding:9px 12px;font:inherit;font-size:14px;background:var(--card);outline:none;color:var(--ink)}
+.ohlp input[type=text]:focus{border-color:var(--pri);box-shadow:0 0 0 4px rgba(79,70,229,.12)}
+.ohlp .tw{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.ohlp .tw label{display:block;font-size:12px;font-weight:700;color:var(--ink2);margin:0 0 3px}
+.ohlp .hrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.ohlp .hcnt{margin-left:auto;font-size:12px;font-weight:700;color:var(--mut)}.ohlp .hcnt.ok{color:var(--ok)}
+.ohlp .qs{margin-top:8px;font-size:13px;color:var(--ink2);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 12px;line-height:1.7}
+.ohlp details{margin-top:12px;font-size:13px}
+.ohlp summary{cursor:pointer;font-weight:700;color:var(--pri)}
+.ohlp .pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+@media (max-width:620px){.ohlp .pair{grid-template-columns:1fr}}
+.ohlp .pair div{border-radius:12px;padding:8px 11px;line-height:1.55;font-size:12.5px}
+.ohlp .pair .bd{background:var(--bad-soft);color:var(--bad)}.ohlp .pair .gd{background:var(--ok-soft);color:var(--ok)}
+.ohlp .pair small{display:block;font-weight:700;margin-bottom:2px}
+.tchk{margin:8px 0 0;display:grid;gap:5px}
+.tchk div{font-size:12.5px;font-weight:600;border-radius:10px;padding:6px 11px}
+.tchk .ok{background:var(--ok-soft);color:var(--ok)}.tchk .wn{background:var(--warn-soft);color:var(--warn)}.tchk .bd{background:var(--bad-soft);color:var(--bad)}
 </style></head><body>
 <div class="app" id="app">
  <div class="top">
@@ -283,7 +307,8 @@ button:focus-visible,select:focus-visible,.auto:focus-visible{outline:3px solid 
 
    <div class="card">
     <div class="ch"><span class="n">2</span><h3>เริ่มงานแบบไหน?</h3></div>
-    <div class="tabs" id="tabs" style="grid-template-columns:repeat(2,1fr)">
+    <div class="tabs" id="tabs" style="grid-template-columns:repeat(3,1fr)">
+     <button class="tab" data-tab="type">✍️ พิมพ์เรื่อง<small>มือใหม่ แนะนำ</small></button>
      <button class="tab" data-tab="topic" style="display:none">✨ ช่วยคิดเรื่อง<small>โหมดหลัก · เหมาะกับมือใหม่</small></button>
      <button class="tab" data-tab="chat">💬 ดึงจากแชต AI<small>มี prompt อยู่ในแชต</small></button>
      <button class="tab" data-tab="paste">📋 วาง prompt<small>มีข้อความอยู่แล้ว</small></button>
@@ -354,6 +379,39 @@ button:focus-visible,select:focus-visible,.auto:focus-visible{outline:3px solid 
      <button class="hide" id="hlpToggle" tabindex="-1"></button>
     </div>
 
+    <div class="pane hide" data-pane="type">
+     <p class="lead">พิมพ์ว่าอยากได้คลิปเรื่องอะไร พิมพ์สั้นๆ หรือพิมพ์ไม่เป็นระเบียบก็ได้ บอทจะให้ AI เขียน prompt ให้ แล้วทำใน Flow ต่อเอง</p>
+     <button class="ghost wide" id="oHlpToggle" style="margin:0 0 12px">🎨 ตัวช่วยคิดเรื่อง · เลือกแนว + ใส่ลูกเล่นของคุณ</button>
+     <div class="ohlp hide" id="oHlp">
+      <div class="tip"><span>💡</span><span>ตัวช่วยนี้มีไว้เพื่อเรียนรู้และเริ่มต้น เมื่อคนใช้เยอะ คลิปจะเริ่มซ้ำกัน ให้สังเกตว่าเรื่องถูกเขียนอย่างไร แล้วปรับเป็นสไตล์ของคุณเอง ลูกเล่นของคุณคือสิ่งที่ทำให้คลิปไม่เหมือนใคร</span></div>
+      <h4>1 · เลือกแนว</h4>
+      <div class="gn" id="oHGn"></div>
+      <h4 style="margin-top:8px">สไตล์ภาพ <span style="font-weight:500;color:var(--mut)">(เลือกตามแนวให้อัตโนมัติ เปลี่ยนได้)</span></h4>
+      <div class="gn" id="oHSt"></div>
+      <h4>2 · เล่าไอเดียสั้นๆ</h4>
+      <input type="text" id="oHIdea" maxlength="90" placeholder="เช่น ผีในตลาดน้ำร้างที่ไม่ได้มาหลอก">
+      <h4>3 · ลูกเล่นของคุณ <span style="font-weight:500;color:var(--mut)">(กรอกอย่างน้อย 2 จาก 3 ช่อง)</span></h4>
+      <div class="tw">
+       <div><label>ตัวเอกของคุณ</label><input type="text" id="oHT1" maxlength="60" placeholder="ยายวัย 70 ผ้าถุงลายดอก"></div>
+       <div><label>โลกของเรื่อง</label><input type="text" id="oHT2" maxlength="60" placeholder="ตลาดน้ำร้าง โทนเขียวหม่น"></div>
+       <div><label>ปมของคุณ</label><input type="text" id="oHT3" maxlength="60" placeholder="ผีมาขอความช่วยเหลือ"></div>
+      </div>
+      <div class="hrow"><div class="chipsx" style="margin:0"><button id="oHRnd">🎲 สุ่มลูกเล่น</button><button id="oHAsk">💬 คำถามช่วยคิด</button></div><span class="hcnt" id="oHCnt">0/3</span></div>
+      <div class="qs hide" id="oHQs">ลองตอบในใจดู แล้วเอาไปใส่ช่องด้านบน<br>• ตัวเอกกลัวอะไรที่สุดในเรื่องนี้<br>• ถ้าคนดูจำได้แค่ภาพเดียว อยากให้เป็นภาพอะไร<br>• อะไรที่เรื่องแนวนี้ของคนอื่น ไม่ค่อยมี</div>
+      <button class="big" id="oHUse" style="margin-top:12px;font-size:15px;padding:12px">⬇ ใส่ลงกล่องเรื่องด้านล่าง</button>
+      <details>
+       <summary>📖 เขียนเรื่องแบบไหนให้ AI เข้าใจ (ตัวอย่างดี/ไม่ดี)</summary>
+       <div class="pair"><div class="bd"><small>แบบนี้ AI เดายาก</small>ผู้หญิงกลัวผี</div><div class="gd"><small>แบบนี้ดี</small>หญิงสาวผมยาวชุดนอนขาว ยืนมองประตูที่เปิดเองในห้องมืด</div></div>
+       <div class="pair"><div class="bd"><small>แบบนี้ AI เดายาก</small>เรื่องหมีหลงป่าแล้วเจอเพื่อนใหม่</div><div class="gd"><small>แบบนี้ดี</small>ลูกหมีผ้าพันคอแดงวิ่งในป่า แล้วเจอกระต่ายริมลำธาร (1 ฉาก 1 เหตุการณ์)</div></div>
+       <div class="pair"><div class="bd"><small>แบบนี้ AI เดายาก</small>ฉากเมืองโบราณ</div><div class="gd"><small>แบบนี้ดี</small>เมืองโบราณยามเช้า แสงทอง หมอกบาง กล้องค่อยๆ ซูมเข้า</div></div>
+      </details>
+     </div>
+     <textarea id="topicTaO" placeholder="เช่น ขายรองเท้าแตะ ใส่สบาย พื้นนุ่ม ให้คนในรูปเดินโชว์ เรื่องสนุกๆ"></textarea>
+     <div class="tchk hide" id="tChkO"></div>
+     <div class="chipsx" id="topicExO"><button>รีวิวสินค้า ขายของออนไลน์</button><button>หนังสั้น 3 ตัวละคร ตลกๆ</button><button>เล่าเรื่องประวัติศาสตร์ การ์ตูน 3D</button></div>
+     <div class="row"><label for="partsSelO">จำนวนคลิป</label><select id="partsSelO"><option value="2">2 คลิป</option><option value="3">3 คลิป</option><option value="4">4 คลิป</option><option value="5">5 คลิป</option><option value="6">6 คลิป</option></select><span style="font-size:12px;color:var(--mut)">ใช้ประมาณ <b id="partsCostO">30</b> เครดิต</span></div>
+     <button class="big" id="goBtnO">✨ ให้ AI เขียน แล้วเริ่มทำคลิป</button>
+    </div>
     <div class="pane hide" data-pane="chat">
      <div class="mini">
       <div><b>1</b><span>เปิดแชตที่ AI เขียน prompt เสร็จแล้ว ไว้ในหน้าต่าง Chrome ของบอท (ใช้สกิล / Gem / Project ของคุณได้ตามปกติ)</span></div>
@@ -614,7 +672,7 @@ function render(s){
   $('pill').classList.toggle('warn',!ready);
   const u=s.update||{},un=$('updNote');
   if(u.status==='available'){un.classList.remove('hide');un.innerHTML='<b>มีอัปเดตใหม่ (รุ่น '+esc(u.latest)+')</b>'+(u.notes?'<br><small>'+esc(u.notes)+'</small>':'')+'<br><button class="ghost" id="updGo" style="margin-top:8px">อัปเดตเลย'+(u.restart&&!u.boot?' (แล้วปิด-เปิดโปรแกรมใหม่)':'')+'</button>';const g=$('updGo');if(g)g.onclick=async()=>{g.disabled=true;await api('/api/update-apply');poll()}}
-  else if(u.status==='applied'){un.classList.remove('hide');un.innerHTML='✓ อัปเดตเป็นรุ่น '+esc(u.rev)+' แล้ว'+(u.applied&&u.applied.restart&&!u.boot?'<br><small>ปิดหน้าต่างดำแล้วเปิด FlowBot ใหม่เพื่อใช้ของใหม่</small>':'')}
+  else if(u.status==='applied'){un.classList.remove('hide');un.innerHTML='✓ อัปเดตเป็นรุ่น '+esc(u.rev)+' แล้ว'+(u.applied&&u.applied.restart&&!u.boot?'<br><small>ปิดหน้าต่างดำแล้วเปิด FlowBot ใหม่เพื่อใช้ของใหม่</small>':'')+'<br><small>แล้วกดปุ่มนี้เพื่อโหลดหน้าจอใหม่ (ถ้าไม่กด หน้าจอจะยังเป็นแบบเก่า)</small><br><button class="ghost" id="updReload" style="margin-top:6px">โหลดหน้าจอใหม่</button>';const rb=$('updReload');if(rb)rb.onclick=()=>location.reload()}
   else un.classList.add('hide');
   const iss=(s.sys&&s.sys.issues)||[];const sn=$('sysNote');sn.classList.toggle('hide',!iss.length);sn.innerHTML=iss.map(i=>'<b>⚠ '+esc(i.text)+'</b>'+(i.url?'<br><a href="'+esc(i.url)+'" target="_blank" rel="noopener">ดาวน์โหลด</a>':'')).join('<hr style="border:0;border-top:1px solid var(--line);margin:8px 0">');
   $('stCredit').textContent=c.credits!=null?'เครดิตใน Flow ตอนนี้: '+c.credits:'';
@@ -749,7 +807,7 @@ async function poll(){
 /* ---------- หน้าแรกแบบใหม่ (3.6) ---------- */
 const AIN2={claude:'Claude',chatgpt:'ChatGPT',gemini:'Gemini',other:'AI อื่น'};
 const lsGet=k=>{try{return localStorage.getItem(k)}catch{return null}},lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch{}};
-let tab=lsGet('fbTab');if(tab!=='chat'&&tab!=='paste')tab='chat';let partsInit=false;
+let tab=lsGet('fbTab');if(tab!=='chat'&&tab!=='paste'&&tab!=='type')tab='type';let partsInit=false;
 function setTab(t){tab=t;lsSet('fbTab',t);document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));document.querySelectorAll('[data-pane]').forEach(p=>p.classList.toggle('hide',p.dataset.pane!==t))}
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));setTab(tab);
 /* ---------- คลัง Prompt (ฝังในบอท) ---------- */
@@ -918,6 +976,54 @@ $('goBtn').onclick=async()=>{const story=window.getStory?window.getStory():[];
  const topic=cp.text;
  if(S&&!(S.conn&&S.conn.ai&&S.conn.ai.length)&&S.settings.ai!=='other'){toast('ยังไม่ได้ล็อกอิน AI — กด "เปิดหน้าเว็บให้ล็อกอิน" ในข้อ 1 ก่อน')}
  $('goBtn').disabled=true;const r=await api('/api/go',{ai:S.settings.ai,parts:Number($('partsSel').value),auto:autoLocal,topic,cast:(window.getCast?window.getCast():[]),script:(window.getScript?window.getScript():''),story:story,series:(window.getSeriesId&&window.getSeriesId()?{id:window.getSeriesId()}:null),film:!!(window.getFilm&&window.getFilm())});if(window.reloadSeries)window.reloadSeries();$('goBtn').disabled=false;if(r.ok){localView=null}poll()};
+
+/* ---- ตัวช่วยคิดเรื่อง (ทำงานฝั่งหน้าจอล้วน ไม่แตะบอท) ---- */
+(()=>{
+const GN=[['สยองขวัญ','บรรยากาศมืด ตึงเครียด แสงน้อย'],['ดราม่า','อารมณ์คนสองคน บทพูดสั้น'],['การ์ตูนเด็ก','สีสดใส ตัวละครน่ารัก'],['เล่าประวัติศาสตร์','มีเสียงเล่าเรื่อง ภาพประกอบเหตุการณ์'],['รีวิวสินค้า','โชว์จุดเด่นของสินค้า ปิดด้วยชวนซื้อ'],['สารคดีสัตว์โลก','ภาพธรรมชาติสมจริง']];
+let cg=-1,cs=-1;const ST=[['สมจริง','ภาพสมจริงเหมือนถ่ายจริง แสงแบบภาพยนตร์'],['การ์ตูน 3D','การ์ตูน 3D นุ่มนวลแบบแอนิเมชัน'],['อนิเมะ','ภาพอนิเมะญี่ปุ่น'],['ภาพวาด','ภาพวาดสีน้ำ/ภาพประกอบ']];const DS=[0,0,1,0,0,0];
+const R=[['เด็กหญิงตาบอดถือโคมกระดาษ','หมู่บ้านลอยน้ำยามหมอก','เธอเห็นผีด้วยเสียง ไม่ใช่ด้วยตา'],['ช่างซ่อมนาฬิกาสูงวัย','ตึกแถวเก่ากลางฝน','นาฬิกาทุกเรือนหยุดที่เวลาเดียวกัน'],['แมวส้มตัวอ้วนสวมกระดิ่งฟ้า','ตลาดนัดกลางคืนสีนีออน','แมวเป็นคนเดียวที่เห็นว่าตลาดนี้ไม่มีคน'],['นักเดินป่าหญิงสะพายเป้สีเหลือง','ป่าสนยามรุ่งเช้า มีหมอกหนา','เสียงนกร้องเป็นจังหวะเหมือนส่งรหัส'],['ลุงขายไอติมปั่นจักรยาน','ซอยเล็กๆ ยามเย็น โทนส้มอุ่น','ไอติมของแกทำให้ใครกินก็นึกถึงวัยเด็ก']];
+const v=id=>$(id).value.trim();
+function dg(){$('oHGn').innerHTML=GN.map((g,i)=>'<button class="'+(i===cg?'on':'')+'" data-i="'+i+'">'+g[0]+'</button>').join('');$('oHGn').querySelectorAll('button').forEach(b=>b.onclick=()=>{cg=Number(b.dataset.i);cs=DS[cg];dg();ds()})}
+function ds(){$('oHSt').innerHTML=ST.map((g,i)=>'<button class="'+(i===cs?'on':'')+'" data-i="'+i+'">'+g[0]+'</button>').join('');$('oHSt').querySelectorAll('button').forEach(b=>b.onclick=()=>{cs=Number(b.dataset.i);ds()})}
+function cnt(){const n=['oHT1','oHT2','oHT3'].filter(i=>v(i)).length,e=$('oHCnt');e.textContent=n+'/3';e.className='hcnt'+(n>=2?' ok':'');return n}
+dg();ds();cnt();
+['oHT1','oHT2','oHT3'].forEach(i=>$(i).addEventListener('input',cnt));
+$('oHlpToggle').onclick=()=>{const h=$('oHlp');h.classList.toggle('hide');$('oHlpToggle').textContent=h.classList.contains('hide')?'🎨 ตัวช่วยคิดเรื่อง · เลือกแนว + ใส่ลูกเล่นของคุณ':'▲ ซ่อนตัวช่วยคิดเรื่อง'};
+$('oHRnd').onclick=()=>{const r=R[Math.floor(Math.random()*R.length)];['oHT1','oHT2','oHT3'].forEach((id,k)=>$(id).value=r[k]);cnt()};
+$('oHAsk').onclick=()=>$('oHQs').classList.toggle('hide');
+$('oHUse').onclick=()=>{
+ if(cg<0){toast('เลือกแนวก่อน');return}
+ if(cnt()<2){toast('กรอกลูกเล่นอย่างน้อย 2 ช่อง — ลูกเล่นนี่แหละที่ทำให้คลิปไม่ซ้ำคนอื่น (กดสุ่มได้ถ้าคิดไม่ออก)');return}
+ if(cs<0)cs=DS[cg];
+ const p=['แนว'+GN[cg][0]+' ('+GN[cg][1]+')','สไตล์ภาพ: '+ST[cs][1]];
+ if(v('oHIdea'))p.push('ไอเดีย: '+v('oHIdea'));
+ if(v('oHT1'))p.push('ตัวเอก: '+v('oHT1'));
+ if(v('oHT2'))p.push('โลกของเรื่อง: '+v('oHT2'));
+ if(v('oHT3'))p.push('ปมพิเศษ: '+v('oHT3'));
+ p.push('ทุกฉากให้เขียนลักษณะตัวเอกครบทุกครั้ง และ 1 ฉากมี 1 เหตุการณ์');
+ const t=p.join(' · ');
+ const ta=$('topicTaO');ta.value=t;ta.dispatchEvent(new Event('input'));ta.focus();
+ toast('ใส่ในกล่องเรื่องแล้ว แก้ข้อความต่อได้ แล้วกด "ให้ AI เขียน"');
+};
+/* ตัวตรวจหัวข้อ: เตือนเฉยๆ ไม่ห้ามกด */
+function chkO(){
+ const t=$('topicTaO').value.trim(),box=$('tChkO');
+ if(!t){box.classList.add('hide');return}
+ const o=[];
+ if(t.length>480)o.push(['bd','ยาวเกินไป บอทอ่านได้แค่ ~500 ตัวอักษรแรก ส่วนท้ายจะหายไป — ตัดให้สั้นลง']);
+ if(t.length<12)o.push(['wn','สั้นมาก ลองบอกว่าใคร อยู่ที่ไหน เกิดอะไรขึ้น']);
+ if(/เรื่องนี้เกี่ยวกับ|สรุปเรื่อง|เนื้อเรื่องคือ|เล่าถึง/.test(t))o.push(['wn','ข้อความนี้เหมือนสรุปเรื่อง ลองเปลี่ยนเป็นภาพที่เห็นในฉาก เช่น ใคร หน้าตาแบบไหน ทำอะไร ที่ไหน']);
+ if(!o.length)o.push(['ok','พร้อมให้ AI เขียนแล้ว']);
+ box.classList.remove('hide');box.innerHTML=o.map(x=>'<div class="'+x[0]+'">'+(x[0]==='ok'?'✓ ':x[0]==='bd'?'✕ ':'⚠ ')+x[1]+'</div>').join('');
+}
+
+document.querySelectorAll('#topicExO button').forEach(b=>b.onclick=()=>{const t=$('topicTaO');t.value=(t.value.trim()?t.value.trim()+' ':'')+b.textContent;t.focus();t.dispatchEvent(new Event('input'))});
+$('partsSelO').onchange=()=>{$('partsSel').value=$('partsSelO').value;$('partsCostO').textContent=costOf();api('/api/settings',{parts:Number($('partsSelO').value)})};
+$('topicTaO').addEventListener('input',chkO);
+$('goBtnO').onclick=async()=>{const topic=$('topicTaO').value.trim();if(!topic){toast('พิมพ์เรื่องที่อยากได้ก่อน สั้นๆ ก็ได้');$('topicTaO').focus();return}
+ if(S&&!(S.conn&&S.conn.ai&&S.conn.ai.length)&&S.settings.ai!=='other'){toast('ยังไม่ได้ล็อกอิน AI — กด "เปิดหน้าเว็บให้ล็อกอิน" ในข้อ 1 ก่อน')}
+ $('goBtnO').disabled=true;const r=await api('/api/go',{ai:S.settings.ai,parts:Number($('partsSelO').value),auto:autoLocal,topic});$('goBtnO').disabled=false;if(r.ok){localView=null}poll()};
+})();
 const chipOn=(id,ok,txt)=>{const c=$(id);c.className='chip '+(ok?'ok':'no');c.innerHTML='<i></i>'+txt};
 ['chFlow','chAi'].forEach(id=>$(id).onclick=()=>{if($(id).classList.contains('no'))openLogin()});
 function renderHome(s){
@@ -927,6 +1033,8 @@ function renderHome(s){
  $('aiOpen').textContent='ยังไม่ได้ล็อกอิน '+(AIN2[st.ai]||'AI')+'? เปิดหน้าเว็บให้ล็อกอิน';
  if(!partsInit){partsInit=true;const p=Math.min(6,Math.max(2,Number(st.parts)||2));$('partsSel').value=String(p)}
  $('partsCost').textContent=costOf();
+ $('partsSelO').value=$('partsSel').value;$('partsCostO').textContent=costOf();
+ $('goBtnO').textContent=st.ai==='other'?'📋 สร้างคำสั่งให้ฉันไปแปะใน AI เอง':'✨ ให้ '+(AIN2[st.ai]||'AI')+' เขียน แล้วเริ่มทำคลิป';
  $('goBtn').textContent=st.ai==='other'?'📋 สร้างคำสั่งให้ฉันไปแปะใน AI เอง':'✨ ให้ '+(AIN2[st.ai]||'AI')+' เขียน แล้วเริ่มทำคลิป';
  $('impBtn').textContent='📥 ดึง prompt จากแชต แล้วเริ่มทำคลิป';
 }
