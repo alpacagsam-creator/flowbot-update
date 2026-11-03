@@ -694,20 +694,28 @@ http.createServer(async (req, res) => {
       } catch { /* ไม่มี prompt เดิม */ }
       const refs = readRefs(), saved = [];
       let plan0 = job.plan; if (!plan0 || !plan0.images || !plan0.images.length) { try { plan0 = JSON.parse(fs.readFileSync(F('job.json'), 'utf8')).plan; } catch { /* ไม่มี */ } }
+      if (!plan0 || !plan0.images || !plan0.images.some(x => /character\s*sheet/i.test(x.name))) { // งานถูกล้างไปแล้ว: ดูจากบันทึกรูปที่บอทวาดล่าสุด (state.json)
+        try { const st = JSON.parse(fs.readFileSync(F('state.json'), 'utf8')); plan0 = { images: Object.values(st.imgs || {}).filter(x => x && x.done && x.file).map(x => ({ name: String(x.base || x.file).replace(/\.[^.]*$/, '').replace(/-[a-z0-9]{4}(?:-v\d+)?$/i, ''), status: 'done', file: x.file })) }; } catch { /* ไม่มี */ }
+      }
+      const scImgs = plan0 && plan0.images ? plan0.images.filter(x => /^Scene\s+\d+$/i.test(x.name)) : [];
+      const locOf = nm => { const m = String(nm).match(/^Scene\s+(\d+)$/i); if (!m) return null; return 'Location ' + (scImgs.length === 1 && Number(b.sceneNo) > 0 ? Number(b.sceneNo) : Number(m[1])); };
+      const locs = {};
+      try { for (const v of lib.splitBlocks(readPrompts()).map(lib.parseBlock).filter(x => x.kind !== 'image')) { const sc = (v.images || []).find(n => /^Scene\s+\d+$/i.test(n)); const m = String(v.text).match(/^\s*SCENE\s*:\s*([^\n]+)/im); if (sc && m) { const L = locOf(sc); if (L && !locs[L]) locs[L] = m[1].trim(); } } } catch { /* ไม่มี */ }
       if (plan0 && plan0.images) for (const im of plan0.images) {
-        if (!/character\s*sheet/i.test(im.name) || im.status !== 'done' || !im.file) continue;
+        const isLoc = !!locOf(im.name);
+        if ((!/character\s*sheet/i.test(im.name) && !isLoc) || im.status !== 'done' || !im.file) continue;
         const src = path.join(IMG, im.file); if (!fs.existsSync(src)) continue;
-        const name = refName(im.name), ext = path.extname(im.file) || '.jpg', file = name + ext;
+        const name = isLoc ? locOf(im.name) : refName(im.name), ext = path.extname(im.file) || '.jpg', file = name + ext;
         const old = refs.find(x => x.name.toLowerCase() === name.toLowerCase());
         if (old && old.file !== file) { try { fs.unlinkSync(path.join(IMG, old.file)); } catch { /* ไม่มีไฟล์ */ } }
         if (path.join(IMG, file) !== src) fs.copyFileSync(src, path.join(IMG, file));
-        const nx = { name, file, kind: 'person', note: old ? old.note || '' : '', on: true };
+        const nx = { name, file, kind: isLoc ? 'place' : 'person', note: old ? old.note || '' : '', on: true };
         if (old) Object.assign(old, nx); else refs.push(nx);
         saved.push(name);
       }
       if (saved.length) writeRefs(refs);
       addLog(`ทำฉากต่อไป: จำตอนจบ${end ? '' : ' (ไม่พบ)'} · เก็บรูปตัวละคร ${saved.length} รูป`);
-      return send(res, 200, { ok: true, end, voices, saved, have: readRefs().map(x => x.name).filter(n => /^Character Sheet /i.test(n)) });
+      return send(res, 200, { ok: true, end, voices, saved, locs, have: readRefs().map(x => x.name).filter(n => /^Character Sheet /i.test(n)), haveLoc: readRefs().map(x => x.name).filter(n => /^Location /i.test(n)) });
     }
     if (p === '/api/ref-add') { // อัปโหลดรูปอ้างอิง: { name, data: dataURL, kind?, note? }
       if (/^data:image\/(heic|heif)/i.test(String(b.data || '')) || /\.(heic|heif)$/i.test(String(b.name || ''))) return send(res, 200, { ok: false, error: 'รูป HEIC จาก iPhone ยังใช้ไม่ได้ — เปิดรูปแล้วแคปหน้าจอ หรือแปลงเป็น JPG ก่อน' });

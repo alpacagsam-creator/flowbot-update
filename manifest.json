@@ -1,7 +1,7 @@
 {
-  "rev": 48,
-  "notes": "BETA: ย้ายบทพูดไปอยู่ใต้การเซ็ทตัวละคร",
-  "at": "2026-11-03T09:19:41.663Z",
+  "rev": 57,
+  "notes": "BETA: ปรับความยาวบทพูดตามความเร็วพูดจริงของ Flow (10 วิ ~94-111 ตัวอักษร)",
+  "at": "2026-11-03T13:02:39.955Z",
   "files": {
     "selectors.json": {
       "sha256": "61ab079d2f5f3a19bc63e413495b24506272c2a4f48c0e9643a6ce5429a498f9"
@@ -16,10 +16,10 @@
       "sha256": "ea6301db5770f74cacffa8165d2808a384f8f2e5dd240fe59db3d5781ade2fa5"
     },
     "server.js": {
-      "sha256": "9ed8bd5f8c1891bd46c5cc383c2e53138d06aba16ec1ae8ebda7a380b70953fc"
+      "sha256": "0e84fb94031c1684b51b34950f638b631bd406281638a3c9d5ec81f128119588"
     },
     "ui.html": {
-      "sha256": "40759fdf7f9c091ded2f4e2c380022dbc5d08b768b7e772160565c50b1ccad21"
+      "sha256": "0439036647d05722003febd4fb460abe1e41e47bc32d8c22398e6e7b0ff5f6fa"
     }
   }
 }
