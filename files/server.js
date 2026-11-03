@@ -111,6 +111,7 @@ function writeControl(extra) {
 }
 
 // ---------- รัน worker (run.js) ----------
+let libAsk = { id: 0, status: 'idle', text: '', error: '' };
 function runWorker(kind, args, env, handlers = {}) {
   if (child) return false;
   childKind = kind; aborted = false;
@@ -143,14 +144,15 @@ function killWorker() {
 const lastErr = () => { const l = [...logLines].reverse().find(x => /ผิดพลาด|ยังไม่ได้ล็อกอิน|ไม่พบ|ไม่ตอบ|อ่านคำตอบ/.test(x)); return l ? l.replace(/^\S+\s+/, '') : 'ไม่ทราบสาเหตุ ดูรายละเอียดด้านล่าง'; };
 
 // ---------- ขอข้อความจาก AI (เปิดแชตใหม่ ส่ง รอ อ่านคำตอบ) ----------
-function askAI(message, expect, done, here) {
+function askAI(message, expect, done, here, key) {
+  key = AI_NAME[key] && key !== 'other' ? key : settings.ai;
   fs.writeFileSync(F('ask.txt'), message, 'utf8');
   try { fs.unlinkSync(F('import.txt')); } catch { /* ไม่มี */ }
-  const ok = runWorker('ask', ['ask', settings.ai], { FLOWBOT_EXPECT: String(expect || 0), FLOWBOT_HERE: here ? '1' : '0' }, {
+  const ok = runWorker('ask', ['ask', key], { FLOWBOT_EXPECT: String(expect || 0), FLOWBOT_HERE: here ? '1' : '0' }, {
     exit: code => {
       if (aborted) return;
       let text = ''; try { text = fs.readFileSync(F('import.txt'), 'utf8'); } catch { /* ไม่มี */ }
-      if (code === 0 && text.trim()) { settings.login[settings.ai] = true; saveSettings(); done(null, text); }
+      if (code === 0 && text.trim()) { settings.login[key] = true; saveSettings(); done(null, text); }
       else done(lastErr());
     },
   });
@@ -159,6 +161,7 @@ function askAI(message, expect, done, here) {
 
 // ---------- รูปอ้างอิงของผู้ใช้ (อัปโหลดเอง ใช้แนบในโหมดองค์ประกอบ) เก็บในโฟลเดอร์ images ----------
 const REFS = F('refs.json');
+let PCS = []; try { PCS = JSON.parse(fs.readFileSync(F('pcs.json'), 'utf8')) || []; } catch { PCS = []; }
 const readRefs = () => { try { const r = JSON.parse(fs.readFileSync(REFS, 'utf8')); return Array.isArray(r) ? r.filter(x => fs.existsSync(path.join(IMG, x.file))) : []; } catch { return []; } };
 const writeRefs = r => fs.writeFileSync(REFS, JSON.stringify(r));
 const refName = n => String(n || '').replace(/\.[^.]*$/, '').replace(/[^\w\-ก-๙ ]/g, '').replace(/\s+/g, ' ').trim().slice(0, 30);
@@ -178,6 +181,7 @@ function validate(plan, requirePipeline) {
   if (plan.error) return plan.error;
   if (!plan.segs.length) return 'ไม่พบ prompt';
   if (requirePipeline && !plan.pipeline) return 'AI ตอบไม่ตรงรูปแบบ (ไม่มีแท็ก [รูป …] / [วิดีโอ …])';
+  if (plan.pipeline && plan.images.length && !plan.videos.length) return 'พบแต่ prompt รูป ไม่พบท่อนวิดีโอ (คำตอบอาจถูกตัด หรือท่อนวิดีโอไม่ได้ขึ้นต้นด้วย [วิดีโอ …] / ===== SEGMENT n =====)';
   if (plan.pipeline) {
     const names = new Set(plan.images.map(x => x.name.trim().toLowerCase()));
     if (!plan.images.length) {
@@ -210,6 +214,7 @@ function missingAttach(plan) {
 // อ่านไม่ได้: ถ้าใช้ AI อัตโนมัติได้ ให้ AI จัดรูปแบบให้ก่อนหนึ่งรอบ (ไม่แก้เนื้อหา) แล้วค่อยแสดง error ถ้ายังไม่ได้
 function failIngest(msg, text, from, quiet, converted) {
   if (quiet) return false;
+  try { addLog('คำตอบที่ได้จาก' + from + ' (ต้นข้อความ): ' + String(text || '').replace(/\s+/g, ' ').slice(0, 220)); } catch { /* ไม่เป็นไร */ }
   if (!converted && settings.ai !== 'other' && !child && String(text).trim().length > 200) {
     setPhase('asking', { msg: `อ่านรูปแบบไม่ออก ให้ ${AI_NAME[settings.ai]} จัดรูปแบบให้บอทอ่านได้…`, error: '' });
     addLog('อ่านไม่ได้ (' + msg + ') → ให้ AI จัดรูปแบบใหม่');
@@ -223,8 +228,30 @@ function failIngest(msg, text, from, quiet, converted) {
   return false;
 }
 function ingest(text, from, requirePipeline, quiet, converted) {
-  if (!/```/.test(String(text)) && !/^\s*\[\s*(รูป|วิดีโอ|ภาพ|image|video)/im.test(String(text))) return failIngest(`ไม่พบ prompt ในข้อความที่ได้จาก${from} (ต้องเป็นกล่องโค้ดหรือมีแท็ก [รูป …] / [วิดีโอ …]) ลองให้ AI ตอบอีกครั้ง แล้วกดอ่านใหม่`, text, from, quiet, converted);
-  const t = lib.normalizePrompts(text);
+  if (!/```/.test(String(text)) && !/^\s*\[\s*(รูป|วิดีโอ|ภาพ|image|video)/im.test(String(text)) && !/^\s*=+\s*SEGMENT\s+\d+/im.test(String(text))) return failIngest(`ไม่พบ prompt ในข้อความที่ได้จาก${from} (ต้องเป็นกล่องโค้ดหรือมีแท็ก [รูป …] / [วิดีโอ …]) ลองให้ AI ตอบอีกครั้ง แล้วกดอ่านใหม่`, text, from, quiet, converted);
+  let t = lib.normalizePrompts(text);
+  // ตัวละครสำเร็จรูปที่ลูกค้าเลือก: ใช้ prompt Character Sheet ของคลัง (หน้า ชุด ผม ตรงตามที่ตั้งไว้) แทนที่ AI เขียนเอง
+  try {
+    const nk0 = x => String(x).toLowerCase().replace(/[^a-z0-9ก-๙]/g, '');
+    if (PCS.length) {
+      let n0 = 0;
+      const bl0 = lib.splitBlocks(t).map(b => {
+        const p0 = lib.parseBlock(b); if (p0.kind !== 'image' || !p0.name) return b;
+        const hit = PCS.find(x => nk0(x.key) === nk0(p0.name)); if (!hit) return b;
+        n0++; return `[รูป ${p0.name}]\n${hit.sheet}`;
+      });
+      if (n0) { addLog(`ใช้ prompt ตัวละครสำเร็จรูป ${n0} คน แทนที่ AI เขียน`); t = bl0.join('\n\n---\n\n'); }
+    }
+  } catch { /* ไม่เป็นไร */ }
+  // ตัวละครที่ผู้ใช้ใส่รูปไว้แล้ว (รูปอ้างอิงชื่อเดียวกับ [รูป …]) ไม่ต้องวาดซ้ำ ใช้รูปนั้นแนบแทน
+  try {
+    const nk = x => String(x).toLowerCase().replace(/[^a-z0-9ก-๙]/g, '');
+    const have = readRefs().filter(r => r.on !== false).map(r => nk(r.name));
+    if (have.length) {
+      const bl = lib.splitBlocks(t), keep = bl.filter(b => { const p = lib.parseBlock(b); return !(p.kind === 'image' && p.name && have.includes(nk(p.name))); });
+      if (keep.length && keep.length < bl.length) { addLog(`ใช้รูปที่คุณใส่ไว้ ไม่วาดซ้ำ ${bl.length - keep.length} รูป`); t = keep.join('\n\n---\n\n'); }
+    }
+  } catch { /* ไม่เป็นไร ใช้แผนเดิม */ }
   const plan = lib.planOf(t);
   const bad = validate(plan, requirePipeline);
   if (bad) return failIngest(`อ่าน prompt ที่ได้จาก${from}ไม่ได้: ${bad}`, text, from, quiet, converted || (/^โหมดองค์ประกอบ:/.test(bad) && !readRefs().length)); // ขาดรูปอ้างอิงและไม่มีรูปให้เลือกเลย = ให้ AI จัดรูปแบบก็ไม่ช่วย
@@ -284,11 +311,13 @@ function lighten() {
   });
 }
 function startRun(resume) {
-  const review = settings.review && !settings.auto && !job.approved;
   seq += 1; fs.writeFileSync(F('control.json'), JSON.stringify({ flagTimes: {}, cmd: { seq } }));
   if (job.plan) job.plan.images.forEach(x => { x.flag = false; });
   if (!resume) { job.approved = false; job.plan = mkPlan(lib.planOf(readPrompts())); }
   job.stop = resume ? job.stop : null;
+  // ด่านตรวจหน้า: ถ้างานนี้มีการวาด Character Sheet ให้หยุดให้ลูกค้าดูหน้าก่อนทำวิดีโอเสมอ (แม้ตั้งโหมดอัตโนมัติ)
+  job.faces = !!(job.plan && job.plan.images.some(x => /character\s*sheet/i.test(x.name)));
+  const review = ((settings.review && !settings.auto) || job.faces) && !job.approved;
   logLines = resume ? logLines : [];
   const legacy = job.plan.legacy;
   if (!resume && conn.credits == null && conn.creditLow) job.notice = `⚠ Flow แจ้งว่าเครดิตเหลือน้อย แต่งานนี้ใช้ประมาณ ${job.credits} เครดิต — ถ้าไม่พอ บอทจะหยุดให้ เติมเครดิตแล้วกด "ทำต่อ" ได้`;
@@ -313,6 +342,7 @@ function onEvent(tag, rest) {
     const im = P.images.find(x => x.seg === o.seg); if (!im) return;
     im.status = o.status; if (o.file) im.file = o.file; if (o.status === 'gen' || o.status === 'pending') im.flag = false;
     saveJob();
+  } else if (tag === 'NOTICE') { job.notice = String(rest || '').slice(0, 200); saveJob();
   } else if (tag === 'VID' && o) { const v = P.videos.find(x => x.seg === o.seg); if (v) { v.status = o.status; saveJob(); } }
   else if (tag === 'RESULT') { const m = rest.match(/^(\d+) (\S+)/); if (m) { const v = P.videos.find(x => x.seg === Number(m[1])); if (v) v.status = m[2] === 'done' ? 'done' : 'bad'; saveJob(); } }
   else if (tag === 'QC' && o) { const v = P.videos.find(x => x.seg === o.seg); if (v) { v.qc = { ok: !!o.ok, flags: o.flags || [], ai: o.ai || null, note: o.note || '' }; saveJob(); } }
@@ -327,6 +357,8 @@ function handleStop(seg, why) {
   job.stop = { seg, why: why || '', attempts: prev, text: blockOf(seg), aiTrying: false };
   const isImg = job.plan.images.some(x => x.seg === seg);
   job.stop.kind = isImg ? 'image' : 'video';
+  job.stop.name = isImg ? ((job.plan.images.find(x => x.seg === seg) || {}).name || '') : '';
+  if (isImg && job.stop.name) addLog('Flow ไม่รับรูป: ' + job.stop.name);
   job.stop.no = isImg ? 0 : job.plan.videos.findIndex(x => x.seg === seg) + 1;
   // Google ตรวจเจอกิจกรรมอัตโนมัติ (ไม่ใช่เรื่องเนื้อหา) → ห้ามให้ AI เขียน prompt ใหม่ ให้พัก แล้วค่อยทำต่อ
   if (/กิจกรรมที่ผิดปกติ|unusual activity|suspicious activity|ส่วนขยายของเบราว์เซอร์|browser extension/i.test(why || '')) {
@@ -355,7 +387,13 @@ function aiFix() {
       const t = lib.normalizePrompts(text), nb = lib.splitBlocks(t)[0];
       const a = lib.parseBlock(orig), b = nb && lib.parseBlock(nb);
       if (b && b.kind === a.kind && b.text) {
-        fs.writeFileSync(F('prompts.txt'), lib.replaceSegment(readPrompts(), seg, nb), 'utf8');
+        let np = lib.replaceSegment(readPrompts(), seg, nb);
+        if (a.kind === 'image') { // ตัวละครที่แก้แล้ว: ใช้คำบรรยายใหม่ในท่อนวิดีโอด้วย จะได้ไม่ถูกปฏิเสธซ้ำและหน้าตรงกับรูป
+          const MK = 'Original fictional character.', cut = x => { const i = x.indexOf(MK); return i < 0 ? '' : x.slice(i + MK.length).replace(/`+\s*$/, '').trim(); };
+          const od = cut(orig), nd = cut(nb);
+          if (od && nd && od !== nd) { np = np.split(od).join(nd); addLog('ปรับคำบรรยายตัวละครใน prompt ที่เหลือให้ตรงกับที่แก้แล้ว'); }
+        }
+        fs.writeFileSync(F('prompts.txt'), np, 'utf8');
         addLog(`AI เขียนท่อน ${seg} ใหม่แล้ว (ครั้งที่ ${job.stop.attempts}) ทำต่อ…`);
         job.stop.aiTrying = false; return startRun(true);
       }
@@ -381,6 +419,10 @@ setInterval(async () => {
   if (c === clipLast) return;
   clipLast = c;
   if (c.trim().length < 80 || c === job.instruction) return;
+  // คำสั่งที่ลูกค้าคัดลอกจากคลัง Prompt (ส่งให้ AI) มีแท็ก [รูป …] เป็นตัวอย่าง ไม่ใช่ prompt จริง → ห้ามหยิบมาทำงาน
+  if (/(^|\n)\s*(ROLE|TASK|OUTPUT FORMAT|STORY CRAFT|DIALOGUE SIZE|WORK IN THIS ORDER|BRIEF)\s*\n/.test(c) || /Character Sheet NAME|\(NAME in capitals/.test(c)) return;
+  // ต้องเป็นคำตอบที่มี prompt วิดีโอจริงเท่านั้น
+  if (!/(^|\n)\s*SHOT\s*:/i.test(c)) return;
   ingest(c, 'คลิปบอร์ด', false, true);
 }, 1500);
 
@@ -426,7 +468,7 @@ function publicState() {
   const imgsDone = P ? P.images.filter(x => x.status === 'done').length : 0;
   const vidsDone = P ? P.videos.filter(x => x.status === 'done').length : 0;
   return {
-    version: VERSION, phase: job.phase, film: !!job.film, story: (job.story || []).map(x => ({ role: x.role, place: x.place, what: x.what })), msg: job.msg, error: job.error, notice: job.notice, topic: job.topic,
+    version: VERSION, phase: job.phase, film: !!job.film, faces: !!job.faces, story: (job.story || []).map(x => ({ role: x.role, place: x.place, what: x.what })), msg: job.msg, error: job.error, notice: job.notice, topic: job.topic,
     plan: P, imgsDone, vidsDone, risks: job.risks, credits: job.credits, stop: job.stop, instruction: job.instruction,
     edit: job.edit, settings, ai: AI_NAME[settings.ai], busy: !!child, log: logLines.slice(-150),
     update: { ...upd.state, auto: settings.autoUpdate, boot: !!process.env.FLOWBOT_BOOT }, sys: SYS, conn, part: partNo, refs: readRefs().map(x => ({ name: x.name, file: x.file, kind: x.kind || 'other', note: x.note || '', on: x.on !== false })), approved: job.approved, flagged: P ? P.images.filter(x => x.flag).map(x => x.name) : [],
@@ -539,6 +581,24 @@ http.createServer(async (req, res) => {
       }, true);
       return send(res, 200, { ok: true });
     }
+    if (p === '/api/lib-ask') { // คลัง Prompt: ส่งคำสั่งให้ AI ของลูกค้า (แชตใหม่ หรือแชตเดิมที่เพิ่งใช้) แล้วอ่านคำตอบกลับ — บอทเป็นแค่ตัวกลาง ไม่แก้ข้อความ
+      if (child) return send(res, 200, { ok: false, busy: true, error: 'บอทกำลังทำงานอย่างอื่นอยู่ (' + (childKind || 'งานเดิม') + ') — รอให้เสร็จ หรือกด "หยุด" ก่อน' });
+      const text = String(b.text || '');
+      const key = ['chatgpt', 'gemini', 'claude'].includes(b.ai) ? b.ai : '';
+      if (text.trim().length < 20 || text.length > 60000) return send(res, 200, { ok: false, error: 'ข้อความสั้นหรือยาวเกินไป' });
+      if (!key) return send(res, 200, { ok: false, error: 'เลือก AI ก่อน (ChatGPT / Gemini / Claude)' });
+      const id = Number(b.id) || 0;
+      libAsk = { id, status: 'asking', text: '', error: '', at: Date.now() };
+      addLog('คลัง Prompt ส่งคำสั่งให้ ' + AI_NAME[key] + (b.here ? ' (แชตเดิม)' : ' (แชตใหม่)'));
+      askAI(text, 0, (err, out) => {
+        if (libAsk.id !== id) return;
+        if (err) libAsk = { id, status: 'error', text: '', error: String(err).slice(0, 300) };
+        else libAsk = { id, status: 'done', text: out, error: '' };
+      }, !!b.here, key);
+      return send(res, 200, { ok: true });
+    }
+    if (p === '/api/lib-ask-status') return send(res, 200, { ok: true, ...libAsk });
+    if (p === '/api/lib-ask-cancel') { if (childKind === 'ask') killWorker(); libAsk = { id: libAsk.id, status: 'error', text: '', error: 'ยกเลิกแล้ว' }; return send(res, 200, { ok: true }); }
     if (p === '/api/convert') { // วางข้อความแบบไหนก็ได้ → ให้ AI ที่เลือกไว้แปลงเป็นรูปแบบที่บอทอ่านได้
       if (child) return send(res, 200, { ok: false, busy: true, error: 'บอทกำลังทำงานอย่างอื่นอยู่ — รอให้เสร็จ หรือกด "หยุด" ก่อน แล้วลองใหม่' });
       const text = String(b.text || '');
@@ -614,6 +674,40 @@ http.createServer(async (req, res) => {
     if (p === '/api/qc-test') { // ทดสอบตัวตรวจคลิปกับคลิปที่มีอยู่แล้วในโปรเจ็กต์ Flow (ไม่เสียเครดิต) ผลอยู่ที่ data/qc-test.json
       if (child) return send(res, 200, { ok: false });
       return send(res, 200, { ok: runWorker('qctest', ['qctest', String(Number(b.n) || 3), b.ai ? 'ai' : ''], {}, {}) });
+    }
+    if (p === '/api/pcs') { // ตัวละครสำเร็จรูปที่ลูกค้าเลือกในคลัง Prompt: { items:[{key, sheet}] } — ใช้แทน prompt รูปตัวละครที่ AI เขียนเอง
+      PCS = (Array.isArray(b.items) ? b.items : []).filter(x => x && x.key && x.sheet).map(x => ({ key: String(x.key).slice(0, 60), sheet: String(x.sheet).slice(0, 6000) }));
+      try { fs.writeFileSync(F('pcs.json'), JSON.stringify(PCS)); } catch { /* ไม่เป็นไร */ }
+      return send(res, 200, { ok: true, n: PCS.length });
+    }
+    if (p === '/api/next-scene') { // ทำฉากต่อไป: จำตอนจบ + เสียงตัวละคร + เก็บรูป Character Sheet ที่บอทวาดแล้วเป็นรูปของฉัน
+      let end = '', voices = {};
+      try {
+        const segs = lib.splitBlocks(readPrompts()).map(lib.parseBlock).filter(x => x.kind !== 'image');
+        const last = segs[segs.length - 1];
+        if (last) {
+          const m = last.text.match(/END STATE\s*:\s*([^\n]+)/i);
+          end = m ? m[1].trim() : '';
+          if (!end) { const a = last.text.match(/ACTION\s*:\s*([^\n]+)/i); end = a ? a[1].split(/\.\.\.|…/).pop().replace(/^\s*\d+(?:\.\d+)?\s*-\s*\d+(?:\.\d+)?\s*s\s*:?/i, '').trim() : ''; }
+        }
+        for (const v of segs) String(v.text).replace(/^\s*([A-Z][A-Za-z0-9\-]{1,23})\b[^\n]*?\bVoice\s*:\s*([^\n]+)$/gm, (m0, n, vo) => { if (!voices[n]) voices[n] = vo.replace(/,?\s*speaks Thai\.?\s*$/i, '').replace(/\.\s*$/, '').trim(); return m0; });
+      } catch { /* ไม่มี prompt เดิม */ }
+      const refs = readRefs(), saved = [];
+      let plan0 = job.plan; if (!plan0 || !plan0.images || !plan0.images.length) { try { plan0 = JSON.parse(fs.readFileSync(F('job.json'), 'utf8')).plan; } catch { /* ไม่มี */ } }
+      if (plan0 && plan0.images) for (const im of plan0.images) {
+        if (!/character\s*sheet/i.test(im.name) || im.status !== 'done' || !im.file) continue;
+        const src = path.join(IMG, im.file); if (!fs.existsSync(src)) continue;
+        const name = refName(im.name), ext = path.extname(im.file) || '.jpg', file = name + ext;
+        const old = refs.find(x => x.name.toLowerCase() === name.toLowerCase());
+        if (old && old.file !== file) { try { fs.unlinkSync(path.join(IMG, old.file)); } catch { /* ไม่มีไฟล์ */ } }
+        if (path.join(IMG, file) !== src) fs.copyFileSync(src, path.join(IMG, file));
+        const nx = { name, file, kind: 'person', note: old ? old.note || '' : '', on: true };
+        if (old) Object.assign(old, nx); else refs.push(nx);
+        saved.push(name);
+      }
+      if (saved.length) writeRefs(refs);
+      addLog(`ทำฉากต่อไป: จำตอนจบ${end ? '' : ' (ไม่พบ)'} · เก็บรูปตัวละคร ${saved.length} รูป`);
+      return send(res, 200, { ok: true, end, voices, saved, have: readRefs().map(x => x.name).filter(n => /^Character Sheet /i.test(n)) });
     }
     if (p === '/api/ref-add') { // อัปโหลดรูปอ้างอิง: { name, data: dataURL, kind?, note? }
       if (/^data:image\/(heic|heif)/i.test(String(b.data || '')) || /\.(heic|heif)$/i.test(String(b.name || ''))) return send(res, 200, { ok: false, error: 'รูป HEIC จาก iPhone ยังใช้ไม่ได้ — เปิดรูปแล้วแคปหน้าจอ หรือแปลงเป็น JPG ก่อน' });

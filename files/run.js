@@ -790,7 +790,7 @@ const AI_SITES = {
   chatgpt: { name: 'ChatGPT', url: 'https://chatgpt.com/', host: /chatgpt\.com|chat\.openai\.com/, input: '#prompt-textarea, div[contenteditable="true"]', stop: 'button[data-testid="stop-button"], button[aria-label*="Stop" i]', send: 'button[data-testid="send-button"], button[aria-label*="Send" i]' },
   gemini: { name: 'Gemini', url: 'https://gemini.google.com/app', host: /gemini\.google\.com/, input: 'rich-textarea div.ql-editor, div.ql-editor[contenteditable="true"], div[contenteditable="true"]', stop: 'button[aria-label*="Stop" i], button[aria-label*="หยุด"]', send: 'button[aria-label*="Send" i], button[aria-label*="ส่ง"]' },
 };
-async function askAI(context, key, message, expect, files, here) {
+async function askAI(context, key, message, expect, files, here, _retried) {
   const site = AI_SITES[key]; if (!site) throw new Error('ไม่รู้จัก AI: ' + key);
   const cands = context.pages().filter(p => site.host.test(p.url()));
   let pg = cands[0];
@@ -828,6 +828,7 @@ async function askAI(context, key, message, expect, files, here) {
     try { await input.click({ force: true, timeout: 5000 }); }
     catch { await input.focus({ timeout: 5000 }).catch(() => { throw e1; }); }
   }
+  if (key === 'gemini' && !(files && files.length)) message += '\n\n(Reply with ONLY the finished prompts, each one inside its own ``` code block. No questions, no explanation, no extra commentary.)'; // Gemini ชอบตอบเป็นข้อความธรรมดา ไม่ใส่กล่องโค้ด
   await pg.keyboard.insertText(message);
   await sleep(1200);
   await pg.keyboard.press('Enter');
@@ -839,7 +840,7 @@ async function askAI(context, key, message, expect, files, here) {
     if (await sb.isVisible().catch(() => false)) { await sb.click().catch(() => {}); await sleep(2000); }
   }
   log(`ส่งคำสั่งให้ ${site.name} แล้ว รอคำตอบ...`);
-  const t0 = Date.now(); let last = '', stableSince = Date.now(), lastCopyTry = 0, lastDiag = 0;
+  const t0 = Date.now(); let last = '', stableSince = Date.now(), lastCopyTry = 0, lastDiag = 0; let lastGrow = Date.now(), lastLen = 0;
   while (Date.now() - t0 < 8 * 60 * 1000) {
     await sleep(3000);
     let text = await readLastAnswer(pg).catch(() => '');
@@ -869,6 +870,13 @@ async function askAI(context, key, message, expect, files, here) {
           fs.writeFileSync(path.join(DATA, 'ask-debug.json'), JSON.stringify(dbg, null, 1), 'utf8');
         } catch { /* ข้าม */ }
       }
+    }
+    if (text.length !== lastLen) { lastLen = text.length; lastGrow = Date.now(); }
+    if (Date.now() - lastGrow > 45000 && Date.now() - lastGrow < 50000) await pg.bringToFront().catch(() => {}); // ข้อความไม่เพิ่มเลย 45 วิ → ดึงแท็บขึ้นหน้า เผื่อถูกหน่วงตอนอยู่เบื้องหลัง
+    if (!_retried && text.length < 400 && Date.now() - lastGrow > 100000 && await pg.locator(site.stop).first().isVisible().catch(() => false)) { // ค้างไม่ขยับเกิน 100 วิ → เปิดแชตใหม่ส่งซ้ำ 1 ครั้ง ไม่รอจนครบ 8 นาที
+      log(`${site.name} ค้างที่ ${text.length} ตัวอักษรนานเกิน 100 วิ → เปิดแชตใหม่แล้วส่งซ้ำ`);
+      await pg.locator(site.stop).first().click().catch(() => {});
+      return askAI(context, key, message, expect, files, here, true);
     }
     if (text !== last) { last = text; stableSince = Date.now(); continue; }
     const blocks = (text.match(/```/g) || []).length / 2;
@@ -1012,6 +1020,17 @@ function findRefForSeg(seg) {
 
 // ---------- ขั้นตอนหลัก: เจนรูปคีย์เฟรม (มีตรวจ/เจนใหม่แบบลูกโซ่) → เจนวิดีโอ ----------
 const IMPL = { image: (...a) => runImageStep(...a), video: (...a) => runVideoStep(...a), why: (...a) => failReason(...a), qc: (...a) => (process.env.FLOWBOT_SIM ? null : qcAfterVideo(...a)) }; // เปลี่ยนได้ตอนทดสอบ (FLOWBOT_SIM)
+// หน้าตัวละครถูก Flow ปฏิเสธเพราะคล้ายคนดัง → ปรับหน้าใน prompt ของรูป Character Sheet แล้ววาดใหม่ 1 ครั้ง
+const FAMOUS_RE = /ชื่อเสียง|บุคคลที่มีชื่อ|famous|celebrit|public figure|prominent (person|people)|likeness/i;
+const isSheetName = n => /character\s*sheet/i.test(String(n || ''));
+const FACE_TWEAKS = [
+  'wearing plain thin-framed glasses, with a noticeably plainer, slightly messy everyday hairstyle and a slightly rounder face',
+  'looks about six years older, with tired eyes, a fuller face, a short practical haircut and a small mole on one cheek',
+];
+function tweakFace(text, i) {
+  return String(text || '').trim() + ' FACE CHANGE: this person must clearly be an ordinary private individual who resembles no actor, singer, model or celebrity; ' + FACE_TWEAKS[Math.min(i, FACE_TWEAKS.length - 1)] + '.';
+}
+
 async function runPipeline(page, segments) {
   const review = process.env.FLOWBOT_REVIEW !== '0';
   const resume = process.env.FLOWBOT_RESUME === '1';
@@ -1073,7 +1092,16 @@ async function runPipeline(page, segments) {
       let r;
       try { r = await IMPL.image(page, x.s, x.n, vname); }
       catch (e) { await stop(x.n, e.message); return 'stopped'; }
-      if (r.status !== 'done') { await stop(x.n, (await IMPL.why(page)) || r.status); return 'stopped'; }
+      if (r.status !== 'done') {
+        const why = (await IMPL.why(page)) || r.status;
+        if (FAMOUS_RE.test(why) && isSheetName(x.s.name) && (x.faceFix || 0) < 1) { // ปรับหน้าแล้ววาดใหม่ 1 ครั้ง ไม่ต้องเริ่มใหม่ทั้งเรื่อง
+          x.s.text = tweakFace(x.s.text, x.faceFix || 0); x.faceFix = (x.faceFix || 0) + 1;
+          log(`Segment ${x.n}: Flow ไม่รับหน้า ${x.s.name} (คล้ายคนดัง) → ปรับหน้าให้ดูเป็นคนธรรมดาขึ้น แล้ววาดใหม่`);
+          sendEv('NOTICE', `ปรับหน้า ${x.s.name} ใหม่ เพราะ Flow บอกว่าคล้ายคนดัง`);
+          continue;
+        }
+        await stop(x.n, why); return 'stopped';
+      }
       state.imgs[k] = { ver, base: vname, file: r.file, done: true };
       genAt[k] = Date.now(); saveState();
       sendEv('IMG', JSON.stringify({ seg: x.n, name: x.s.name, status: 'done', file: r.file }));
@@ -1105,7 +1133,31 @@ async function runPipeline(page, segments) {
     let st;
     try { st = await IMPL.video(page, x.s, x.n); }
     catch (e) { await stop(x.n, e.message); return 'stopped'; }
-    if (st !== 'done') { await stop(x.n, (await IMPL.why(page)) || st); return 'stopped'; }
+    if (st !== 'done') {
+      const why = (await IMPL.why(page)) || st;
+      // วิดีโอโดนปฏิเสธเพราะหน้าคล้ายคนดัง: วาด Character Sheet ที่แนบในท่อนนี้ใหม่ (ปรับหน้า) แล้วลองท่อนนี้อีก 1 ครั้ง
+      // ทำเฉพาะหน้าที่ยังไม่เคยใช้ในคลิปที่ทำเสร็จแล้ว ไม่งั้นหน้าจะไม่ตรงกันระหว่างคลิป
+      const sheets = (x.s.images || []).filter(isSheetName).map(nm => imgs.find(y => keyOf(y.s.name) === keyOf(nm))).filter(Boolean);
+      const used = y => vids.some(v => v !== x && state.vids[v.n] === 'done' && (v.s.images || []).some(nm => keyOf(nm) === keyOf(y.s.name)));
+      if (FAMOUS_RE.test(why) && !x.faceFixed && sheets.length && !sheets.some(used)) {
+        x.faceFixed = true;
+        log(`Segment ${x.n}: Flow ไม่รับคลิปนี้เพราะหน้าตัวละครคล้ายคนดัง → ปรับหน้า ${sheets.map(y => y.s.name).join(', ')} แล้ววาดใหม่ (ไม่เสียเครดิตวิดีโอที่ถูกปฏิเสธ)`);
+        sendEv('NOTICE', 'Flow บอกว่าหน้าตัวละครคล้ายคนดัง กำลังปรับหน้าแล้วลองใหม่ให้');
+        let okAll = true;
+        for (const y of sheets) {
+          const yk = keyOf(y.s.name), cur = state.imgs[yk] || {};
+          const ver = (cur.ver || 0) + 1, vname = `${y.s.name}-${state.tag}-v${ver}`;
+          y.s.text = tweakFace(y.s.text, y.faceFix || 0); y.faceFix = (y.faceFix || 0) + 1;
+          sendEv('IMG', JSON.stringify({ seg: y.n, name: y.s.name, status: 'gen' }));
+          let r2 = null; try { r2 = await IMPL.image(page, y.s, y.n, vname); } catch (e) { log('วาดหน้าใหม่ไม่สำเร็จ: ' + e.message); }
+          if (!r2 || r2.status !== 'done') { okAll = false; break; }
+          state.imgs[yk] = { ver, base: vname, file: r2.file, done: true }; saveState();
+          sendEv('IMG', JSON.stringify({ seg: y.n, name: y.s.name, status: 'done', file: r2.file }));
+        }
+        if (okAll) { sendEv('VID', JSON.stringify({ seg: x.n, status: 'gen' })); try { st = await IMPL.video(page, x.s, x.n); } catch (e) { st = e.message; } }
+      }
+      if (st !== 'done') { await stop(x.n, (await IMPL.why(page)) || why); return 'stopped'; }
+    }
     state.vids[x.n] = 'done'; saveState();
     sendEv('VID', JSON.stringify({ seg: x.n, status: 'done' }));
     if (cfg.qc && cfg.qc !== 'off') { // ตรวจคลิปที่เพิ่งได้ (ตัวเลข / ให้ AI ดู) ผิดพลาดตรงนี้ไม่กระทบงานหลัก

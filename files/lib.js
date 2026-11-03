@@ -58,8 +58,62 @@ function inferPipeline(segs) {
 }
 
 // แปลงข้อความจาก AI (มี ```บล็อกโค้ด``` แยกต่อ segment) เป็นรูปแบบ prompts.txt: segment คั่นด้วย ---
+
+// คำตอบที่ก๊อปจากหน้าเว็บ AI (เช่น Gemini) มักไม่มีเครื่องหมาย ``` เพราะกล่องโค้ดถูกแสดงเป็นกรอบ → ใส่กล่องโค้ดคืนให้เอง
+// แยกตามบรรทัดแท็ก [รูป …]/[วิดีโอ …] และหัว "===== SEGMENT n ====="; ข้ามหัวข้อสรุป (SCENE BIBLE, PROPS LEDGER, CHECKLIST …)
+const SHEET_TPL = (name, body) => {
+  const cartoon = /cartoon|animated|stylized|stylised/i.test(body);
+  return 'Character reference sheet, ' + (cartoon ? 'stylized 3D animated film' : 'photorealistic cinematic') + ' style, plain light-grey background, even soft light. Left: full-body front view, side view and back view. Right: three face close-ups (neutral, gentle smile, tearful). Same outfit and face in every view, one single character, no props. The only text allowed is the character name "' + String(name).toUpperCase() + '" printed once as a large clean caption in plain capital letters at the top centre of the sheet, spelled exactly like that; no other text, numbers or logos. ' + (cartoon ? '' : 'The character is an ordinary-looking real person with distinctive, slightly imperfect features and natural un-retouched skin, not a model or idol. A live-action photograph of a real human, not a drawing, not a cartoon, not a 3D render. ') + 'Original fictional character. ';
+};
+function fenceify(raw) {
+  const TAG = /^\s*\[\s*(รูปภาพ|รูป|ภาพ|image|img|วิดีโอ|video|คลิป)(\s[^\]]*)?\]\s*$/i;
+  const SEG = /^\s*(?:=+|#+|\*+)?\s*SEGMENT\s+(\d+)\b[^\n]*$/i;
+  const HEAD = /^\s*[#*=\s]*(CHARACTER BLOCKS?|CHARACTER SHEETS?|SCENE BIBLE|PROPS LEDGER|SCENE IMAGES?|CHECKLIST|STORY OUTLINE)\s*[:#*=\s]*$/i;
+  const MK = /^\s*\[แนบ(?:ภาพ)?\s*@?\s*:[^\]]*\]\s*$/;
+  const out = []; let cur = null;
+  const flush = () => {
+    if (!cur) return;
+    let body = cur.lines.join('\n').trim();
+    if (body) {
+      const sm = cur.head.match(/Character\s+Sheet\s+([^\]]+)\]/i);
+      if (sm && !/reference sheet|character sheet|turnaround/i.test(body)) body = SHEET_TPL(sm[1].trim(), body) + body.replace(/\s*Voice\s*:[^\n]*/i, '').trim();
+      out.push(cur.head + (cur.marks.length ? '\n' + cur.marks.join('\n') : '') + '\n```\n' + body + '\n```');
+    }
+    cur = null;
+  };
+  for (const ln of String(raw).split('\n')) {
+    let m;
+    if (TAG.test(ln)) { flush(); cur = { head: ln.trim(), marks: [], lines: [] }; continue; }
+    if ((m = ln.match(SEG)) && !/^\s*SEGMENT\s+\d+\s*:/i.test(ln)) { flush(); cur = { head: `[วิดีโอ S${m[1]}]`, marks: [], lines: [] }; continue; }
+    if (HEAD.test(ln)) { flush(); continue; }
+    if (!cur) continue;
+    if (MK.test(ln) && !cur.lines.join('').trim()) { cur.marks.push(ln.trim()); continue; }
+    cur.lines.push(ln);
+  }
+  flush();
+  return out.join('\n\n');
+}
+// ชื่อในบรรทัดแนบที่ไม่ตรงกับรูปไหน แต่ตรงกับ "Character Sheet ชื่อนั้น" → เปลี่ยนให้ตรง (AI ชอบเขียนแค่ FAH แทน Character Sheet FAH)
+function fixAttachNames(t) {
+  const names = []; String(t).replace(/^\s*\[\s*(?:รูปภาพ|รูป|ภาพ|image|img)\s+([^\]]+)\]\s*$/gim, (_, n) => { names.push(n.trim()); return _; });
+  const k = x => String(x).toLowerCase().replace(/[^a-z0-9ก-๙]/g, '');
+  const have = new Set(names.map(k));
+  return String(t).replace(/\[แนบ(ภาพ)?(\s*@?\s*:\s*)([^\]\n]*)\]/g, (m0, ph, sep, list) => `[แนบ${ph || ''}${sep}${list.split(',').map(x => { x = x.trim(); if (!x || have.has(k(x))) return x; const cs = names.find(n => k(n) === k('Character Sheet ' + x)); return cs || x; }).join(', ')}]`);
+}
 function normalizePrompts(raw) {
   raw = String(raw || '').replace(/\[\s*attach(?:ed)?\s*:/gi, '[แนบ:').replace(/\r\n/g, '\n').trim();
+  if (!/```/.test(raw) && (/^\s*\[\s*(รูปภาพ|รูป|ภาพ|image|img|วิดีโอ|video|คลิป)(\s[^\]]*)?\]\s*$/im.test(raw) || /^\s*=+\s*SEGMENT\s+\d+/im.test(raw))) { const f = fenceify(raw); if (f) raw = f; }
+  let out = normalize0(raw);
+  // มีทั้งกล่องโค้ด (รูป) และท่อนวิดีโอที่ไม่อยู่ในกล่องโค้ด ("===== SEGMENT n =====") → ท่อนวิดีโอหายหมด
+  // ลองถอดเครื่องหมาย ``` ออกแล้วแยกตามแท็ก/หัว SEGMENT ใหม่ ถ้าได้ท่อนมากกว่าให้ใช้แบบนั้น
+  if (/```/.test(raw) && /^\s*(?:=+|#+|\*+)?\s*SEGMENT\s+\d+/im.test(raw)) {
+    const f = fenceify(raw.replace(/^\s*```[^\n]*$/gm, ''));
+    const g = f ? normalize0(f) : '';
+    if (g && splitBlocks(g).length > splitBlocks(out).length) out = g;
+  }
+  return fixAttachNames(out);
+}
+function normalize0(raw) {
   const fence = /```[^\n]*\n([\s\S]*?)```/g;
   const blocks = []; let m, prevEnd = 0;
   while ((m = fence.exec(raw))) {
@@ -338,6 +392,9 @@ function buildConvertTH(text, refs) {
 - บรรทัดแรกในกล่องเป็นแท็ก: รูป = [รูป ชื่อรูป] เช่น [รูป Character Sheet ชื่อตัวละคร], [รูป K0] · วิดีโอแบบองค์ประกอบ = [วิดีโอ S1], [วิดีโอ S2] ... (1 ฉาก = 1 วิดีโอ) · วิดีโอแบบเฟรม = [วิดีโอ S1: K0 → K1] (ใช้เฉพาะเมื่อต้นฉบับสั่งเป็นเฟรม)
 - บรรทัดที่สองถ้า prompt ต้องแนบภาพ ให้ใส่ [แนบ: ชื่อรูป1, ชื่อรูป2] — ชื่อต้องเป็นอย่างใดอย่างหนึ่งเท่านั้น: (ก) ตรงกับแท็ก [รูป …] ของกล่องในแผนนี้เป๊ะ (ข) ชื่อรูปจริงของผู้ใช้ในรายการด้านล่าง (ถ้ามี) · ถ้าต้นฉบับอ้างรูปที่ไม่มีทั้งสองแบบ ให้เปลี่ยนเป็นชื่อที่ตรงความหมายที่สุดในรายการ หรือเพิ่มกล่อง [รูป …] สร้างรูปนั้น
 - ถ้ามีตัวละครหลักที่ไม่มีรูปจริง ให้ทำ [รูป Character Sheet ชื่อ] กล่องละ 1 คน (หลายคนก็แยกกล่องคนละใบ) ก่อน แล้ววิดีโอแต่ละคลิปแนบ Character Sheet เฉพาะคนที่อยู่ในฉากนั้น (ฉากที่มีสองคน แนบทั้งสองใบ)
+- ถ้าข้อความต้นฉบับมีรายละเอียดตัวละคร (หน้าตา ผม ชุด) ให้คัดลอกเป๊ะๆ ใน Character Sheet ห้ามแต่งเพิ่ม ห้ามเปลี่ยนชุดหรือสี และห้ามใช้คำว่า handsome, pretty, beautiful, K-drama, idol, 8k
+- ถ้าทั้งเรื่องอยู่ในสถานที่เดียว (ฉากเดียว) ให้ทำ [รูป Scene 1] อีก 1 กล่อง (ต่อจาก Character Sheet ก่อนวิดีโอ) เป็น prompt ภาษาอังกฤษของภาพห้อง/สถานที่นั้นแบบเปล่า ไม่มีคน ไม่มีตัวหนังสือ แนวตั้ง 9:16 มุมกล้องฝั่งเดียวกับที่ถ่ายเรื่อง เห็นของที่ตายตัวทั้งหมด (ประตู หน้าต่าง เคาน์เตอร์ ชั้น โต๊ะ เก้าอี้) ตำแหน่งชัด ไม่มีของเล็กๆ วางบนโต๊ะ ข้างนอกหน้าต่างไม่มีคน แล้วแนบ Scene 1 ใน [แนบ: ...] ของ "ทุกวิดีโอ" ร่วมกับ Character Sheet ของคนในฉากนั้น และให้ข้อความบรรยายสถานที่ในทุกวิดีโอตรงกับรูปห้องนี้
+- ชุดของแต่ละคนต้องเหมือนเดิมทุกท่อน คัดลอกคำบรรยายชุดและสีจาก Character Sheet ลงทุกวิดีโอเป๊ะ และถ้ามีสองคนในฉากเดียวกัน เสื้อนอกของสองคนต้องคนละสีชัดเจน (เช่น เข้มกับอ่อน) ห้ามสลับหรือยืมเสื้อกัน
 - บล็อกที่ขึ้นต้นว่า STYLE: ล้วนๆ ให้ใส่ไว้ท้าย prompt แต่ละอันแทน อย่าแยกเป็นกล่องเอง
 - สำคัญที่สุด: ตอบเป็น "ข้อความล้วน" ในกล่องโค้ดเท่านั้น ห้ามสร้าง วาด หรือแสดงรูปภาพ/สตอรีบอร์ดในแชต (ถ้ามีคำว่าแผ่นตัวละคร ภาพ หรือฉาก ให้เขียนเป็น prompt ตัวอักษร ไม่ใช่วาดรูปให้) บอทจะเอา prompt ไปวาดเอง
 - สำคัญ: ตอบ "แผนเดียว" เท่านั้น ห้ามเสนอหลายทางเลือก ห้ามมีวิดีโอเลขเดียวกันซ้ำ ห้ามมีลิงก์ คำแนะนำ หรือข้อความอื่นนอกกล่องโค้ด${refsBlock(refs)}
@@ -375,6 +432,7 @@ function buildFixOneTH(block, why) {
   return `Google Flow ปฏิเสธ prompt ด้านล่างนี้${why ? ' (ข้อความจาก Flow: ' + why + ')' : ''} ช่วยเขียนใหม่ให้เบาลงและปลอดภัยขึ้น โดย
 - คงบรรทัดแท็กด้านบน ([รูป …] / [วิดีโอ …] / [แนบ: …]) ไว้เหมือนเดิมเป๊ะ
 - คงโครงสร้าง ความยาว บทพากย์ และ STYLE เดิม เปลี่ยนเฉพาะส่วนที่น่าจะโดนปฏิเสธ
+- ถ้าเป็น prompt สร้างรูปตัวละคร (Character Sheet) ที่ถูกปฏิเสธเรื่องบุคคลมีชื่อเสียง: คงเพศ อายุ เชื้อชาติ/ลักษณะที่ลูกค้าขอ ทรงผม ชุด เครื่องประดับ บุคลิก และสไตล์ภาพเดิมไว้ทั้งหมด แต่เปลี่ยนคำบรรยายใบหน้าที่ละเอียดเกินไปให้เป็นลักษณะทั่วไปที่ไม่ชี้ว่าเหมือนใคร และเขียนว่าเป็นตัวละครสมมติต้นฉบับ ห้ามเปลี่ยนชื่อตัวละคร
 - ตอบเป็นกล่องโค้ดเดียว ห้ามมีข้อความอื่น
 
 ${SAFE_RULES}
@@ -535,6 +593,9 @@ function buildConvertEN(text, refs) {
 - The first line in a block is a tag: image = [Image name], e.g. [Image Character Sheet Name], [Image K0] · ingredients video = [Video S1], [Video S2] ... (1 scene = 1 video) · frames video = [Video S1: K0 → K1] (only if the original asks for frames).
 - The second line, if the prompt needs attached images, is [attach: name1, name2] — each name must be either (a) exactly equal to the [Image …] tag of a box in this plan, or (b) the real photo name of the user in the list below (if any). If the original refers to an image that is neither, change it to the closest-meaning name in the list, or add an [Image …] box that creates it.
 - If there is a main character without a real photo, make [Image Character Sheet Name] boxes, one per character (separate boxes for several characters), first; each video then attaches the Character Sheets only of the characters in that scene (two characters in a scene = attach both).
+- If the source text gives character details (face, hair, outfit), copy them exactly into the Character Sheet; add nothing, change no clothes or colours, and do not use the words handsome, pretty, beautiful, K-drama, idol or 8k.
+- If the whole story takes place in ONE location, also make one [Image Scene 1] box (after the Character Sheets, before the videos): an English prompt for an empty establishing picture of that room/place, no people, no text, vertical 9:16, from the side the story is filmed from, with every fixed element (door, windows, counter, shelves, table, chairs) at clear fixed positions, no small loose props, nobody outside the window. Attach Scene 1 in the [attach: ...] line of EVERY video together with the Character Sheets of the people in it, and make the location text in every video match this room.
+- Each person's outfit must stay identical in every video: copy the outfit description and colours from the Character Sheet into every video exactly, and when two people share a scene their outer garments must be clearly different colours (for example dark and light); never swap or borrow clothes.
 - A block that starts only with STYLE: goes at the end of each prompt instead; do not make it its own box.
 - Most important: answer with plain text in code blocks only. Never create, draw or show images/storyboards in the chat (if the text mentions a character sheet, picture or scene, write it as a text prompt, not a drawing). The bot will draw the prompts itself.
 - Important: answer with ONE plan only. No alternatives, no duplicate video numbers, no links, tips or other text outside the code blocks.${refsBlockEN(refs)}
