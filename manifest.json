@@ -1,7 +1,7 @@
 {
-  "rev": 57,
-  "notes": "BETA: ปรับความยาวบทพูดตามความเร็วพูดจริงของ Flow (10 วิ ~94-111 ตัวอักษร)",
-  "at": "2026-11-03T13:02:39.955Z",
+  "rev": 64,
+  "notes": "BETA: ป็อปอัพ มีอะไรใหม่ หลังอัพเดท",
+  "at": "2026-11-04T21:11:37.768Z",
   "files": {
     "selectors.json": {
       "sha256": "61ab079d2f5f3a19bc63e413495b24506272c2a4f48c0e9643a6ce5429a498f9"
@@ -10,7 +10,7 @@
       "sha256": "3741bf4a6e1748f139eafb1c50638937968ceae4e5fcaad464a9fb3a651ebace"
     },
     "lib.js": {
-      "sha256": "2103719dd72819f53ded79f8010a5adbf7ee51786817cd3e1d6c561407014125"
+      "sha256": "3e66424237b6234a8fe4d9b4f522e176acdd74d6b402999c397908400630ab38"
     },
     "run.js": {
       "sha256": "ea6301db5770f74cacffa8165d2808a384f8f2e5dd240fe59db3d5781ade2fa5"
@@ -19,7 +19,7 @@
       "sha256": "0e84fb94031c1684b51b34950f638b631bd406281638a3c9d5ec81f128119588"
     },
     "ui.html": {
-      "sha256": "0439036647d05722003febd4fb460abe1e41e47bc32d8c22398e6e7b0ff5f6fa"
+      "sha256": "e6d19b7e769cb8e7726bf2d25835e1ad0f88cb45064bb7f3e87ceadac7ba6bde"
     }
   }
 }

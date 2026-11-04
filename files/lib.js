@@ -68,7 +68,7 @@ const SHEET_TPL = (name, body) => {
 function fenceify(raw) {
   const TAG = /^\s*\[\s*(รูปภาพ|รูป|ภาพ|image|img|วิดีโอ|video|คลิป)(\s[^\]]*)?\]\s*$/i;
   const SEG = /^\s*(?:=+|#+|\*+)?\s*SEGMENT\s+(\d+)\b[^\n]*$/i;
-  const HEAD = /^\s*[#*=\s]*(CHARACTER BLOCKS?|CHARACTER SHEETS?|SCENE BIBLE|PROPS LEDGER|SCENE IMAGES?|CHECKLIST|STORY OUTLINE)\s*[:#*=\s]*$/i;
+  const HEAD = /^\s*[#*=\s]*(CHARACTER BLOCKS?|CHARACTER SHEETS?|SCENE BIBLE|PROPS LEDGER|SCENE IMAGES?|CHECKLIST|STORY OUTLINE|NARRATION SCRIPT)\s*[:#*=\s]*$/i;
   const MK = /^\s*\[แนบ(?:ภาพ)?\s*@?\s*:[^\]]*\]\s*$/;
   const out = []; let cur = null;
   const flush = () => {
