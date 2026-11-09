@@ -12,6 +12,164 @@ const PORT = Number(process.env.FLOWBOT_PORT || 3737);
 const WORKER = process.env.FLOWBOT_WORKER || path.join(APP, 'run.js');
 const F = n => path.join(DATA, n);
 const upd = require('./updater').init({ appDir: APP, dataDir: DATA });
+// ===== บัญชี napbot.online: ล็อกอิน / ทดลองใช้ / สิทธิ์ (อยู่ในไฟล์นี้ เพราะระบบอัปเดตส่งได้เฉพาะ 6 ไฟล์) =====
+const lic = (() => { const module = { exports: {} };
+// FlowBot — สมาชิก / สิทธิ์ใช้งาน (บัญชีเดียวกับเว็บ napbot.online และ FlowBot X)
+// ต่อเน็ตเฉพาะตอนล็อกอิน/เช็คสิทธิ์ (Supabase ของ NapBot) ไม่ส่งข้อมูลงานหรือพรอมต์ออกไป
+const fs = require('fs'), path = require('path'), crypto = require('crypto'), https = require('https');
+const { execFileSync, exec } = require('child_process');
+
+const SB_URL = process.env.FLOWBOT_SB_URL || 'https://sxlruybflafinnlakoyv.supabase.co'; // (ENV ใช้ตอนทดสอบเท่านั้น)
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4bHJ1eWJmbGFmaW5ubGFrb3l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMzY4NzQsImV4cCI6MjEwOTgxMjg3NH0.bKbrdPLwwqT77IKUe-SFh1fqs30EwW2M52s5FcXMWOQ';
+const SITE = 'https://napbot.online';
+const FB_PAGE = ''; // ลิงก์เพจ NapBot (ใส่ทีหลัง)
+const GRACE_DAYS = 14; // เครื่องลูกค้าเก่า (ใช้บอทมาก่อนอัปเดตนี้) ใช้ต่อได้ 14 วันโดยไม่ต้องล็อกอิน
+
+let DATA = '.', FILE = '';
+const read = () => { try { return JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch { return {}; } };
+const write = o => { try { fs.writeFileSync(FILE, JSON.stringify(o, null, 1)); } catch { /* ข้าม */ } };
+
+function init(dataDir) { DATA = dataDir; FILE = path.join(DATA, 'licence.json'); markLegacy(); return module.exports; }
+
+// เครื่องลูกค้าเก่า = ก่อนระบบบัญชีมา เครื่องนี้มีงานเก่าอยู่แล้ว (ไฟล์ที่เกิดจากการใช้บอทจริงเท่านั้น)
+// ตรวจครั้งเดียวตอนเปิดรุ่นนี้ครั้งแรก แล้วจำไว้ — เครื่องลงใหม่ (ไฟล์หลุด) จะไม่มีไฟล์พวกนี้
+const WORK_FILES = ['job.json', 'state.json', 'prompts.txt', 'results.json', 'clips.json', 'refs.json', 'pcs.json', 'shop.json', 'series.json', 'import.txt', 'chrome-profile'];
+function markLegacy() {
+  const o = read(); if (o.legacy !== undefined) return;
+  let old = false;
+  try { old = WORK_FILES.some(f => fs.existsSync(path.join(DATA, f))); } catch { /* ข้าม */ }
+  if (!old) try { old = fs.readdirSync(path.join(DATA, 'images')).length > 0; } catch { /* ไม่มีโฟลเดอร์ */ }
+  o.legacy = old; o.legacyFrom = Date.now(); write(o);
+}
+
+// รหัสเครื่อง: MachineGuid ของ Windows (เปลี่ยนเมื่อลง Windows ใหม่เท่านั้น) → hash ก่อนส่ง
+let devCache = null;
+function deviceId() {
+  if (devCache) return devCache;
+  let raw = '';
+  if (process.platform === 'win32') {
+    try {
+      const out = execFileSync('reg', ['query', 'HKLM\\SOFTWARE\\Microsoft\\Cryptography', '/v', 'MachineGuid'], { encoding: 'utf8', timeout: 5000, windowsHide: true });
+      const m = out.match(/MachineGuid\s+REG_SZ\s+([0-9a-f-]{20,})/i); if (m) raw = m[1];
+    } catch { /* ใช้แบบสำรอง */ }
+  }
+  if (!raw) { const o = read(); raw = o.rnd || (o.rnd = crypto.randomUUID()); write(o); }
+  devCache = 'win-' + crypto.createHash('sha256').update('napbot|' + raw).digest('hex').slice(0, 32);
+  return devCache;
+}
+const label = () => (process.platform === 'win32' ? 'Windows' : process.platform) + ' · FlowBot';
+
+function req(p, body, token) {
+  return new Promise((ok, no) => {
+    const data = JSON.stringify(body || {});
+    const mod = SB_URL.startsWith('http:') ? require('http') : https;
+    const r = mod.request(SB_URL + p, { method: 'POST', timeout: 15000, headers: { apikey: SB_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data), Authorization: 'Bearer ' + (token || SB_KEY) } }, res => {
+      let t = ''; res.setEncoding('utf8'); res.on('data', c => t += c);
+      res.on('end', () => { let j = null; try { j = JSON.parse(t); } catch { /* ข้าม */ }
+        if (res.statusCode >= 300) { const e = new Error((j && (j.error_description || j.msg || j.message || j.error)) || ('HTTP ' + res.statusCode)); e.status = res.statusCode; return no(e); }
+        ok(j); });
+    });
+    r.on('timeout', () => r.destroy(new Error('timeout'))); r.on('error', no); r.end(data);
+  });
+}
+function saveAuth(j, email) {
+  const o = read();
+  o.auth = { access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || (Math.floor(Date.now() / 1000) + (j.expires_in || 3600)), email: (j.user && j.user.email) || email };
+  write(o);
+}
+async function token() {
+  const o = read(); const a = o.auth; if (!a) return null;
+  if (a.expires_at - 90 > Date.now() / 1000) return a.access_token;
+  try { const j = await req('/auth/v1/token?grant_type=refresh_token', { refresh_token: a.refresh_token }); saveAuth(j, a.email); return j.access_token; }
+  catch (e) { if (e.status >= 400 && e.status < 500) { const x = read(); delete x.auth; delete x.lic; write(x); return null; } throw e; }
+}
+// เหลือกี่วันในช่วงผ่อนผันลูกค้าเก่า (0 = ไม่มี/หมดแล้ว) · ไฟล์ data/licence-enforce-now.txt = ล็อกทันที (ไว้ทดสอบ)
+function graceLeft() {
+  try { if (fs.existsSync(path.join(DATA, 'licence-enforce-now.txt'))) return 0; } catch { /* ข้าม */ }
+  const o = read(); if (!o.legacy) return 0;
+  const end = (o.legacyFrom || Date.now()) + GRACE_DAYS * 864e5;
+  return end > Date.now() ? end : 0;
+}
+const grace = () => !!graceLeft();
+const extra = () => { const g = graceLeft(); const o = read(); return { grace: !!g, graceUntil: g || null, legacy: !!o.legacy, legacyReq: o.legacyReq || null }; };
+const fresh = c => c && c.ok && (!c.expires_at || new Date(c.expires_at) > Date.now());
+
+let last = null;
+async function check(force) {
+  const o = read(); const a = o.auth;
+  if (!a) return (last = { ok: false, reason: 'login', ...extra() });
+  const c = o.lic;
+  if (!force && fresh(c) && Date.now() - c.at < 10 * 60e3) return (last = { ...c, email: a.email, followed: !!o.followed, ...extra() });
+  try {
+    const t = await token(); if (!t) return (last = { ok: false, reason: 'login', ...extra() });
+    const r = await req('/rest/v1/rpc/check_access', { p_device: deviceId(), p_label: label() }, t);
+    const x = read(); x.lic = { ...r, at: Date.now() }; write(x);
+    return (last = { ...r, email: a.email, followed: !!x.followed, ...extra() });
+  } catch (e) {
+    if (fresh(c) && Date.now() - c.at < 24 * 3600e3) return (last = { ...c, email: a.email, offline: true, followed: !!o.followed, ...extra() });
+    return (last = { ok: false, reason: 'offline', error: String(e.message || e), email: a.email, followed: !!o.followed, ...extra() });
+  }
+}
+function openUrl(u) { if (process.platform === 'win32') exec(`start "" "${u.replace(/"/g, '')}"`); }
+
+async function handle(b) {
+  const act = b && b.action;
+  if (act === 'login') {
+    try { const j = await req('/auth/v1/token?grant_type=password', { email: String(b.email || '').trim(), password: String(b.password || '') }); saveAuth(j, b.email); const x = read(); delete x.lic; write(x); }
+    catch (e) { const s = String(e.message || e); return { ok: false, reason: 'login', error: /invalid/i.test(s) ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' : /not confirmed/i.test(s) ? 'ยังไม่ได้ยืนยันอีเมล — เปิดอีเมลแล้วกดลิงก์ยืนยันก่อน' : 'เข้าสู่ระบบไม่ได้: ' + s }; }
+    return check(true);
+  }
+  if (act === 'logout') { const x = read(); delete x.auth; delete x.lic; delete x.followed; write(x); return (last = { ok: false, reason: 'login', ...extra() }); }
+  if (act === 'follow') {
+    openUrl(FB_PAGE || 'https://www.facebook.com/search/top?q=NapBot');
+    try { const t = await token(); if (t) await req('/rest/v1/rpc/mark_follow', {}, t); } catch { /* ข้าม */ }
+    const x = read(); x.followed = true; write(x); return check(false);
+  }
+  if (act === 'trial') {
+    try { const t = await token(); if (!t) return { ok: false, reason: 'login' };
+      const r = await req('/rest/v1/rpc/start_trial', { p_device: deviceId() }, t);
+      if (!r.ok) { const x = read(); return { ...r, email: x.auth && x.auth.email, followed: r.reason === 'need_follow' ? false : !!x.followed, ...extra() }; }
+    } catch (e) { return { ok: false, reason: 'offline', error: String(e.message || e) }; }
+    return check(true);
+  }
+  if (act === 'legacy') { // ปุ่ม "ฉันเป็นลูกค้าเก่า" → ส่งคำขอเข้าคิวแอดมิน (ระบุว่าเป็นเครื่องเก่าหรือไม่)
+    const o = read();
+    try {
+      const t = await token(); if (!t) return { ...(await check(false)), error: 'เข้าสู่ระบบก่อน แล้วกดปุ่มนี้อีกครั้ง' };
+      const when = o.legacyFrom ? new Date(o.legacyFrom).toISOString().slice(0, 10) : '?';
+      const who = o.legacy ? `✅ เครื่องเก่า: มีงานในบอทก่อนอัปเดตระบบบัญชี (ตรวจเมื่อ ${when})` : '⚠ เครื่องใหม่: ไม่พบประวัติการใช้งานก่อนอัปเดต';
+      const msg = String(b.note || '').trim().slice(0, 300);
+      await req('/rest/v1/orders', { product_id: 'legacy', note: `[ขอจากโปรแกรม FlowBot] ${who} · เครื่อง ${deviceId().slice(0, 12)}${msg ? ' · ลูกค้าเขียน: ' + msg : ''}` }, t);
+      const x = read(); x.legacyReq = Date.now(); write(x);
+    } catch (e) { return { ...(await check(false)), error: /รอตรวจ/.test(String(e.message)) ? 'ส่งคำขอไว้แล้ว รอแอดมินตรวจ' : 'ส่งคำขอไม่ได้: ' + (e.message || e) }; }
+    return { ...(await check(true)), sent: true };
+  }
+  if (act === 'site') { openUrl(SITE + (String(b.path || '/account.html').startsWith('/') ? b.path : '/account.html')); return { ok: true }; }
+  return check(act === 'check');
+}
+
+// ใช้ก่อนเริ่มงาน: { allow, msg }
+async function gate() {
+  const l = await check(true);
+  if (l.ok) return { allow: true, lic: l, msg: l.offline ? 'เน็ตเช็คสิทธิ์ไม่ได้ ใช้ผลตรวจล่าสุดไปก่อน' : '' };
+  if (l.grace) return { allow: true, lic: l, msg: '⚠ เครื่องลูกค้าเก่า: ใช้ได้ถึง ' + new Date(l.graceUntil).toLocaleDateString('th-TH') + ' — ขอสิทธิ์ถาวรฟรีที่ปุ่มบัญชีมุมขวาบน ("ฉันเป็นลูกค้าเก่า")' };
+  return { allow: false, lic: l, msg: '🔒 ยังใช้งานไม่ได้: ' + text(l) + ' — กดปุ่มบัญชีมุมขวาบน (ข้าง Google Flow)' };
+}
+function text(l) {
+  const r = (l && l.reason) || '';
+  return ({ login: 'ยังไม่ได้เข้าสู่ระบบ', no_licence: 'บัญชีนี้ยังไม่มีสิทธิ์ใช้งาน', trial_ended: 'หมดเวลาทดลองแล้ว', expired: 'สิทธิ์หมดอายุแล้ว',
+    banned: 'บัญชีนี้ถูกระงับ', device_limit: 'ใช้ครบ ' + ((l && l.max_devices) || 2) + ' เครื่องแล้ว', offline: 'เชื่อมต่อเว็บสมาชิกไม่ได้',
+    device_used: 'เครื่องนี้เคยทดลองไปแล้ว', user_used: 'บัญชีนี้เคยทดลองไปแล้ว', need_follow: 'กดติดตามเพจ NapBot ก่อน', ip_limit: 'เครือข่ายนี้ทดลองครบจำนวนแล้ว',
+    already_paid: 'บัญชีนี้ซื้อแล้ว' }[r]) || (l && l.error) || 'ตรวจสิทธิ์ไม่ผ่าน';
+}
+const state = () => last;
+
+// ใช้กับทุกคำสั่งของบอท: true = ใช้ได้ (มีสิทธิ์ หรือยังอยู่ในช่วงผ่อนผันลูกค้าเก่า)
+async function allowed() { if (grace()) return true; const l = await check(false); return !!(l.ok || l.grace); }
+
+module.exports = { init, handle, check, gate, state, text, deviceId, allowed };
+
+return module.exports; })().init(DATA);
 const VERSION = '4.1';
 
 // ---------- ตรวจระบบตอนเปิด (แสดงเป็นภาษาไทยบนหน้าแรกถ้ามีอะไรขาด) ----------
@@ -73,7 +231,7 @@ function makeReport(note) {
 }
 
 // ---------- ตั้งค่า ----------
-const DEFAULTS = { ratio: '9:16', videoSeconds: 10, ai: 'claude', review: true, precheck: true, riskAuto: 'ai', onReject: 'ai', auto: false, parts: 4, videoMode: 'auto', qc: 'basic', qcRedo: false, dedupe: false, ackRisk: false, autoUpdate: true, login: {} };
+const DEFAULTS = { ratio: '9:16', videoSeconds: 10, ai: 'claude', review: true, precheck: true, riskAuto: 'ai', onReject: 'ai', auto: false, parts: 4, videoMode: 'auto', qc: 'basic', qcRedo: false, dedupe: false, ackRisk: false, autoUpdate: true, autoDl: false, dlQ: '1080', login: {} };
 let settings = { ...DEFAULTS };
 try { settings = { ...DEFAULTS, ...JSON.parse(fs.readFileSync(F('settings.json'), 'utf8')) }; } catch { /* ใช้ค่าเริ่มต้น */ }
 const saveSettings = () => fs.writeFileSync(F('settings.json'), JSON.stringify(settings, null, 2));
@@ -83,6 +241,8 @@ const AI_URL = { claude: 'https://claude.ai/', chatgpt: 'https://chatgpt.com/', 
 // ---------- งานปัจจุบัน ----------
 let job = freshJob();
 function freshJob() { return { phase: 'home', msg: '', topic: '', plan: null, risks: [], stop: null, approved: false, instruction: '', edit: '', error: '', lightened: false, credits: 0, notice: '' }; }
+let dlJob = { id: 0, status: 'idle' }; // คลิปพร้อมโพสต์ (โหลด 1080p + ต่อไฟล์)
+let shopJob = { id: 0, status: 'idle' }; // ดึงสินค้า Shopee (หน้า 🛒 ในคลัง Prompt)
 let partNo = 1, child = null, childKind = '', logLines = [], seq = 0, clipLast = null, aborted = false, pendingStop = null;
 const addLog = l => { logLines.push(l); if (logLines.length > 400) logLines.shift(); };
 const saveJob = () => { try { fs.writeFileSync(F('job.json'), JSON.stringify(job)); } catch { /* ไม่เป็นไร */ } };
@@ -310,7 +470,16 @@ function lighten() {
     setPhase('pre', { notice: 'ให้ AI ปรับไม่สำเร็จ (' + err + ') เลือกวิธีอื่นได้เลย' });
   });
 }
-function startRun(resume) {
+// เช็คสิทธิ์บัญชีก่อนเริ่มงานทุกครั้ง (ล็อกอิน napbot.online / ทดลองใช้ / ซื้อแล้ว)
+async function startRun(resume) {
+  let g;
+  try { g = await lic.gate(); } catch (e) { g = { allow: false, msg: '🔒 ตรวจสิทธิ์ไม่ได้: ' + e.message }; }
+  if (!g.allow) { addLog(g.msg); return setPhase('error', { error: g.msg }); }
+  if (g.msg) { addLog(g.msg); job.notice = g.msg; }
+  try { return startRunNow(resume); }
+  catch (e) { addLog('เริ่มงานไม่ได้: ' + e.message); setPhase('error', { error: 'เริ่มงานไม่ได้: ' + e.message }); }
+}
+function startRunNow(resume) {
   seq += 1; fs.writeFileSync(F('control.json'), JSON.stringify({ flagTimes: {}, cmd: { seq } }));
   if (job.plan) job.plan.images.forEach(x => { x.flag = false; });
   if (!resume) { job.approved = false; job.plan = mkPlan(lib.planOf(readPrompts())); }
@@ -327,13 +496,46 @@ function startRun(resume) {
     if (sawStop && pendingStop) { const st = pendingStop; pendingStop = null; return handleStop(st.seg, st.why); }
     if (code === 0 && (job.phase === 'done' || legacy)) {
       if (legacy) job.plan.videos.forEach(v => { if (v.status === 'gen') v.status = 'done'; });
-      return setPhase('done');
+      setPhase('done');
+      if (settings.autoDl && job.plan && job.plan.videos && job.plan.videos.length) { const n = job.plan.videos.length; setTimeout(() => { const r = startDl(n, settings.dlQ); if (!r.ok) addLog('คลิปพร้อมโพสต์อัตโนมัติเริ่มไม่ได้: ' + r.error); }, 2000); }
+      return;
     }
     setPhase('error', { error: lastErr() });
   } });
   if (!ok) return setPhase('error', { error: 'มีงานอื่นกำลังทำอยู่' });
   setPhase(legacy ? 'videos' : 'work', { msg: '' });
 }
+// ---------- คลิปพร้อมโพสต์ (โหลด 1080p + ต่อไฟล์) ใช้ได้ทั้งกดเองและอัตโนมัติหลังงานเสร็จ ----------
+function startDl(countIn, qIn) {
+  if (child) return { ok: false, error: 'บอทกำลังทำงานอย่างอื่นอยู่ (' + (childKind || 'งานเดิม') + ') — รอให้เสร็จก่อน' };
+  const count = Math.max(1, Math.min(30, Number(countIn) || 0));
+  if (!count) return { ok: false, error: 'ใส่จำนวนคลิปที่จะรวม' };
+  const quality = qIn === '720' ? '720' : '1080';
+  const d = new Date(), pad = n => String(n).padStart(2, '0');
+  const folder = path.join(require('os').homedir(), 'Downloads', 'FlowBot', `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}${pad(d.getMinutes())}`);
+  const id = Date.now();
+  dlJob = { id, status: 'busy', count, k: 0, step: 'start', msg: 'กำลังเปิดโปรเจ็กต์ใน Flow…', folder };
+  addLog(`คลิปพร้อมโพสต์: โหลด ${count} คลิป (${quality}p) → ${folder}`);
+  const ok = runWorker('dl', ['dl', String(count)], { FLOWBOT_DL_DIR: folder, FLOWBOT_DLQ: quality }, {
+    event: (tag, data) => {
+      if (tag !== 'DL') return; let o = {}; try { o = JSON.parse(data); } catch { return; }
+      if (o.step === 'clip') Object.assign(dlJob, { k: o.k, step: 'clip', msg: `กำลังโหลดท่อน ${o.k}/${o.count}…` });
+      else if (o.step === 'wait') dlJob.msg = `กำลังโหลดท่อน ${dlJob.k}/${dlJob.count}… (Flow กำลังทำ ${quality}p · ${o.sec} วินาที)`;
+      else if (o.step === 'got') { dlJob.msg = `ได้ท่อน ${o.k}/${dlJob.count} แล้ว (${o.q})`; if (/สำรอง/.test(o.q || '')) addLog(`ท่อน ${o.k}: Flow ทำ 1080p ไม่ทัน ใช้ไฟล์ต้นฉบับ 720p แทน`); }
+      else if (o.step === 'ffmpeg') dlJob.msg = `ครั้งแรก: กำลังโหลดตัวต่อคลิป ${o.pc}%`;
+      else if (o.step === 'join') Object.assign(dlJob, { step: 'join', msg: 'กำลังต่อคลิปเป็นไฟล์เดียว…' });
+      else if (o.step === 'done') Object.assign(dlJob, { file: o.file, caption: o.caption });
+    },
+    exit: () => {
+      if (dlJob.id !== id) return;
+      if (dlJob.file && fs.existsSync(dlJob.file)) { dlJob.status = 'done'; dlJob.msg = 'เสร็จแล้ว'; if (process.platform === 'win32') exec(`explorer /select,"${dlJob.file}"`); }
+      else { dlJob.status = 'error'; dlJob.msg = aborted ? 'ยกเลิกแล้ว' : 'ไม่สำเร็จ: ' + lastErr(); }
+    },
+  });
+  if (!ok) { dlJob.status = 'error'; return { ok: false, error: 'บอทกำลังทำงานอย่างอื่นอยู่' }; }
+  return { ok: true, id };
+}
+
 function onEvent(tag, rest) {
   const P = job.plan; if (!P) return;
   let o = null; try { o = JSON.parse(rest); } catch { /* ไม่ใช่ JSON */ }
@@ -470,11 +672,12 @@ function publicState() {
   return {
     version: VERSION, phase: job.phase, film: !!job.film, faces: !!job.faces, story: (job.story || []).map(x => ({ role: x.role, place: x.place, what: x.what })), msg: job.msg, error: job.error, notice: job.notice, topic: job.topic,
     plan: P, imgsDone, vidsDone, risks: job.risks, credits: job.credits, stop: job.stop, instruction: job.instruction,
-    edit: job.edit, settings, ai: AI_NAME[settings.ai], busy: !!child, log: logLines.slice(-150),
+    edit: job.edit, settings, ai: AI_NAME[settings.ai], busy: !!child, lic: lic.state(), log: logLines.slice(-150),
     update: { ...upd.state, auto: settings.autoUpdate, boot: !!process.env.FLOWBOT_BOOT }, sys: SYS, conn, part: partNo, refs: readRefs().map(x => ({ name: x.name, file: x.file, kind: x.kind || 'other', note: x.note || '', on: x.on !== false })), approved: job.approved, flagged: P ? P.images.filter(x => x.flag).map(x => x.name) : [],
   };
 }
 
+const LIC_FREE = new Set(['/api/settings', '/api/stop', '/api/reset', '/api/update-check', '/api/update-apply', '/api/report', '/api/dl-status', '/api/lib-ask-status', '/api/shop-status']);
 http.createServer(async (req, res) => {
   const u = new URL(req.url, 'http://x'); const p = u.pathname;
   lib.setLang(req.headers['x-lang'] === 'en' ? 'en' : 'th');
@@ -491,6 +694,11 @@ http.createServer(async (req, res) => {
     if (req.method === 'GET' && p === '/api/export-snippet') return send(res, 200, { text: lib.buildExportSnippet({ parts: settings.parts, ratio: settings.ratio, seconds: settings.videoSeconds, videoMode: settings.videoMode, refs: activeRefs() }) });
     if (req.method === 'GET' && p === '/api/state') return send(res, 200, publicState());
     if (req.method === 'GET' && p === '/api/series') return send(res, 200, { list: readSeries() });
+    if (req.method === 'GET' && p.startsWith('/shopimg/')) { // รูปสินค้าที่ดึงจาก Shopee (ยังไม่ใช่รูปอ้างอิง)
+      const f = path.join(DATA, 'shop', safeName(decodeURIComponent(p.slice(9))));
+      if (!fs.existsSync(f)) return send(res, 404, 'no');
+      return send(res, 200, fs.readFileSync(f), TYPES[path.extname(f).toLowerCase()] || 'application/octet-stream');
+    }
     if (req.method === 'GET' && p.startsWith('/img/')) {
       const f = path.join(IMG, safeName(decodeURIComponent(p.slice(5))));
       if (!fs.existsSync(f)) return send(res, 404, 'no');
@@ -499,8 +707,11 @@ http.createServer(async (req, res) => {
     if (req.method !== 'POST') return send(res, 404, { error: 'not found' });
     const b = await jsonBody(req);
 
+    if (p === '/api/lic') return send(res, 200, await lic.handle(b));
+    // ไม่มีสิทธิ์ = ใช้อะไรไม่ได้เลย (เหลือแค่ บัญชี / ตั้งค่า / หยุด / อัปเดต / ส่งรายงานปัญหา)
+    if (!LIC_FREE.has(p) && !(await lic.allowed().catch(() => false))) return send(res, 200, { ok: false, locked: true, error: '🔒 ยังใช้งานไม่ได้ — เข้าสู่ระบบ/ขอสิทธิ์ที่ปุ่มบัญชีมุมขวาบน' });
     if (p === '/api/settings') {
-      for (const k of ['ratio', 'videoSeconds', 'ai', 'review', 'precheck', 'riskAuto', 'onReject', 'auto', 'parts', 'videoMode', 'qc', 'qcRedo', 'dedupe', 'ackRisk', 'autoUpdate']) if (b[k] !== undefined) settings[k] = b[k];
+      for (const k of ['ratio', 'videoSeconds', 'ai', 'review', 'precheck', 'riskAuto', 'onReject', 'auto', 'parts', 'videoMode', 'qc', 'qcRedo', 'dedupe', 'ackRisk', 'autoUpdate', 'autoDl', 'dlQ']) if (b[k] !== undefined) settings[k] = b[k];
       if (b.login) settings.login = { ...settings.login, ...b.login };
       saveSettings(); return send(res, 200, { ok: true, settings });
     }
@@ -717,6 +928,44 @@ http.createServer(async (req, res) => {
       addLog(`ทำฉากต่อไป: จำตอนจบ${end ? '' : ' (ไม่พบ)'} · เก็บรูปตัวละคร ${saved.length} รูป`);
       return send(res, 200, { ok: true, end, voices, saved, locs, have: readRefs().map(x => x.name).filter(n => /^Character Sheet /i.test(n)), haveLoc: readRefs().map(x => x.name).filter(n => /^Location /i.test(n)) });
     }
+    if (p === '/api/dl') { // คลิปพร้อมโพสต์: โหลด N คลิปล่าสุดจาก Flow → ต่อเป็นไฟล์เดียว → Downloads\FlowBot\...
+      const r = startDl(b.count, b.quality);
+      return send(res, 200, r);
+    }
+    if (p === '/api/dl-status') return send(res, 200, { ok: true, ...dlJob });
+    if (p === '/api/dl-cancel') { if (childKind === 'dl') killWorker(); dlJob.status = 'error'; dlJob.msg = 'ยกเลิกแล้ว'; return send(res, 200, { ok: true }); }
+    if (p === '/api/dl-open') { if (dlJob.folder && fs.existsSync(dlJob.folder) && process.platform === 'win32') exec(`explorer "${dlJob.folder}"`); return send(res, 200, { ok: true }); }
+    if (p === '/api/shop-fetch') { // วางลิงก์สินค้า Shopee → บอทเปิดในหน้าต่างของบอท อ่านชื่อ ราคา รายละเอียด รูป (ไม่ต่อ API ของ Shopee)
+      const url = String(b.url || '').trim();
+      if (!/^https?:\/\/([\w-]+\.)*(shopee\.[a-z.]+|shp\.ee)\//i.test(url)) return send(res, 200, { ok: false, error: 'ลิงก์นี้ไม่ใช่ลิงก์ Shopee (ต้องขึ้นต้นด้วย https://shopee... หรือ https://s.shopee... / shp.ee)' });
+      if (child) return send(res, 200, { ok: false, error: 'บอทกำลังทำงานอย่างอื่นอยู่ (' + (childKind || 'งานเดิม') + ') — รอให้เสร็จ หรือกด "หยุด" ก่อน' });
+      const id = Number(b.id) || Date.now();
+      shopJob = { id, status: 'busy' };
+      try { fs.unlinkSync(F('shop.json')); } catch { /* ไม่มี */ }
+      addLog('ดึงข้อมูลสินค้า Shopee: ' + url.slice(0, 80));
+      const ok = runWorker('shop', ['shop', url], {}, {
+        exit: () => {
+          let d = null; try { d = JSON.parse(fs.readFileSync(F('shop.json'), 'utf8')); } catch { /* ไม่มีไฟล์ */ }
+          if (d && d.ok) shopJob = { id, status: 'done', data: d };
+          else shopJob = { id, status: 'error', error: (d && d.error) || (aborted ? 'ยกเลิกแล้ว' : 'ดึงข้อมูลไม่สำเร็จ: ' + lastErr()) };
+        },
+      });
+      if (!ok) { shopJob = { id, status: 'error', error: 'บอทกำลังทำงานอย่างอื่นอยู่' }; return send(res, 200, { ok: false, error: shopJob.error }); }
+      return send(res, 200, { ok: true, id });
+    }
+    if (p === '/api/shop-status') return send(res, 200, { ok: true, ...shopJob });
+    if (p === '/api/shop-save') { // เก็บรูปสินค้าที่เลือกเป็นรูปอ้างอิง "Product ชื่อ" (ประเภทสินค้า) ใช้แนบใน Flow
+      const src = path.join(DATA, 'shop', safeName(String(b.file || '')));
+      if (!b.file || !fs.existsSync(src)) return send(res, 200, { ok: false, error: 'ไม่พบรูปนี้แล้ว ลองดึงข้อมูลใหม่' });
+      const want = refName('Product ' + String(b.name || '').replace(/^Product\s+/i, '')) || 'Product 1';
+      const refs = readRefs(), old = refs.find(x => x.name.toLowerCase() === want.toLowerCase());
+      if (old) { try { fs.unlinkSync(path.join(IMG, old.file)); } catch { /* ไม่มีไฟล์ */ } }
+      const file = want + path.extname(src).toLowerCase();
+      fs.copyFileSync(src, path.join(IMG, file));
+      const next = refs.filter(x => x !== old); next.push({ name: want, file, kind: 'product', note: String(b.note || '').slice(0, 120), on: true }); writeRefs(next);
+      addLog('เก็บรูปสินค้าเป็นรูปอ้างอิง: ' + want);
+      return send(res, 200, { ok: true, name: want });
+    }
     if (p === '/api/ref-add') { // อัปโหลดรูปอ้างอิง: { name, data: dataURL, kind?, note? }
       if (/^data:image\/(heic|heif)/i.test(String(b.data || '')) || /\.(heic|heif)$/i.test(String(b.name || ''))) return send(res, 200, { ok: false, error: 'รูป HEIC จาก iPhone ยังใช้ไม่ได้ — เปิดรูปแล้วแคปหน้าจอ หรือแปลงเป็น JPG ก่อน' });
       const m = String(b.data || '').match(/^data:image\/(png|jpe?g|webp);base64,(.+)$/);
@@ -776,6 +1025,7 @@ http.createServer(async (req, res) => {
 }).listen(PORT, '127.0.0.1', () => {
   console.log(`FlowBot ${VERSION} พร้อมแล้วที่ http://127.0.0.1:${PORT}  (ปิดหน้าต่างนี้ = ปิดโปรแกรม)`);
   openBrowser();
+  lic.check(false).catch(() => {}); setInterval(() => { if (!child) lic.check(false).catch(() => {}); }, 30 * 60e3);
 });
 
 function openBrowser() {
@@ -784,3 +1034,4 @@ function openBrowser() {
   if (process.platform === 'win32') exec(`start "" "${url}"`); else if (process.platform === 'darwin') exec(`open ${url}`);
 }
 process.on('exit', () => { if (child) killWorker(); });
+process.on('unhandledRejection', e => { try { addLog('ข้อผิดพลาด: ' + (e && e.message || e)); } catch { /* ข้าม */ } });

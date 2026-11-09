@@ -1,7 +1,7 @@
 {
-  "rev": 67,
-  "notes": "โหมดใหม่ การ์ตูน 2D ทุกแนวเรื่อง ออกแบบตัวละครการ์ตูนเองได้",
-  "at": "2026-11-07T12:24:13.377Z",
+  "rev": 68,
+  "notes": "สำคัญ: ระบบบัญชี NapBot · ลูกค้าเก่าใช้ต่อได้ 14 วัน · ทดลองฟรี 24 ชม. · กลุ่ม LINE OpenChat · Shopee ลิงก์เดียว · คลิปพร้อมโพสต์ 1080p",
+  "at": "2026-11-09T23:01:12.358Z",
   "files": {
     "selectors.json": {
       "sha256": "61ab079d2f5f3a19bc63e413495b24506272c2a4f48c0e9643a6ce5429a498f9"
@@ -13,13 +13,13 @@
       "sha256": "3e66424237b6234a8fe4d9b4f522e176acdd74d6b402999c397908400630ab38"
     },
     "run.js": {
-      "sha256": "ea6301db5770f74cacffa8165d2808a384f8f2e5dd240fe59db3d5781ade2fa5"
+      "sha256": "cfbb54e9afe5de1a190bb3f0d6735fe99fa57a41e6663be0b717b86d56936c54"
     },
     "server.js": {
-      "sha256": "0e84fb94031c1684b51b34950f638b631bd406281638a3c9d5ec81f128119588"
+      "sha256": "bd89a3520967cf15cdbe9c61ddcfb7f7dc37d6f5c2a5b3889b295e9dd0062537"
     },
     "ui.html": {
-      "sha256": "f80b276b20e57402da6c81a809cdff7db78068f8fe0be7014a79e66e9513b1eb"
+      "sha256": "b9c23f304e821e5e7a07bbdd05666912d0e7da31f5ab07da8fac32abc01fa382"
     }
   }
 }

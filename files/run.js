@@ -1018,6 +1018,246 @@ function findRefForSeg(seg) {
   return '';
 }
 
+// ---------- คลิปพร้อมโพสต์: โหลดคลิปจาก Flow (1080p) แล้วต่อเป็นไฟล์เดียวด้วย ffmpeg ----------
+const LAST_PROJECT = path.join(DATA, 'last-project.txt');
+const dlEv = o => sendEv('DL', JSON.stringify(o));
+// หาไฟล์ใหม่ในโฟลเดอร์ Downloads ของเครื่อง (สำรอง เมื่อ Playwright จับการดาวน์โหลดไม่ได้)
+function newDownloads(since) {
+  const dirs = [path.join(require('os').homedir(), 'Downloads')];
+  const out = [];
+  for (const d of dirs) { let fl = []; try { fl = fs.readdirSync(d); } catch { continue; } for (const f of fl) { if (!/\.(mp4|mov|webm)$/i.test(f)) continue; try { const st = fs.statSync(path.join(d, f)); if (st.mtimeMs > since && st.size > 50000) out.push({ f: path.join(d, f), t: st.mtimeMs, size: st.size }); } catch { /* ข้าม */ } } }
+  return out.sort((a, b) => a.t - b.t);
+}
+// จดว่าคลิปของแต่ละท่อนคือคลิปไหน (รูปตัวอย่าง/ลิงก์ของการ์ดคลิป) เพื่อโหลดได้ถูกท่อนแม้มีคลิปเจนซ้ำแทรก
+const CLIPS_FILE = path.join(DATA, 'clips.json');
+async function clipKeyAt(page, index) {
+  return page.evaluate((index) => {
+    const all = [...document.querySelectorAll('div,button,a')].filter(e => { const r = e.getBoundingClientRect(); return r.width > 30 && r.height > 20 && /^play_circle/.test((e.innerText || '').trim()); });
+    const icons = all.filter(e => !all.some(o => o !== e && e.contains(o)));
+    const icon = icons[index]; if (!icon) return null;
+    const ir = icon.getBoundingClientRect();
+    const img = [...document.querySelectorAll('img')].find(i => { const r = i.getBoundingClientRect(); return r.width > 80 && Math.abs(r.x - ir.x) < 8 && Math.abs(r.y - ir.y) < 8; });
+    const a = (img || icon).closest('a');
+    const src = img ? (img.currentSrc || img.src || '') : '';
+    return { src: /^(https?:)/.test(src) ? src : '', href: a ? a.href : '' };
+  }, index).catch(() => null);
+}
+async function openClipByKey(page, key) {
+  if (!key || (!key.src && !key.href)) return false;
+  const h = await page.evaluateHandle((key) => {
+    const base = u => String(u || '').split('?')[0];
+    if (key.href) { const a = [...document.querySelectorAll('a')].find(x => x.href === key.href); if (a) return a.querySelector('img') || a; }
+    if (key.src) { const im = [...document.querySelectorAll('img')].find(i => (i.currentSrc || i.src) === key.src || base(i.currentSrc || i.src) === base(key.src)); if (im) return im; }
+    return null;
+  }, key);
+  const el = h.asElement(); if (!el) return false;
+  await el.scrollIntoViewIfNeeded().catch(() => {});
+  await el.click({ timeout: 8000 }); return true;
+}
+// ปุ่ม/เมนูดาวน์โหลดของ Flow: หาจาก aria-label หรือไอคอน "download" (ไม่พึ่งภาษา)
+async function clickDownloadButton(page) {
+  const h = await page.evaluateHandle(() => {
+    const vis = e => { const r = e.getBoundingClientRect(); const s = getComputedStyle(e); return r.width > 8 && r.height > 8 && s.visibility !== 'hidden' && s.display !== 'none'; };
+    const all = [...document.querySelectorAll('button,[role=button],a')].filter(vis);
+    return all.find(e => /download|ดาวน์โหลด/i.test(e.getAttribute('aria-label') || '')) || all.find(e => /^\s*download\s*$/i.test((e.innerText || '').split('\n')[0])) || all.find(e => /^\s*(download|ดาวน์โหลด)/i.test(e.innerText || '')) || null;
+  });
+  const el = h.asElement(); if (!el) return false;
+  await el.click({ timeout: 8000 }); return true;
+}
+async function menuTexts(page) {
+  return page.evaluate(() => [...document.querySelectorAll('[role=menuitem],[role=menuitemradio],[role=option],[role=menu] button,[role=menu] li,[role=dialog] button,li,button')].filter(e => { const r = e.getBoundingClientRect(); return r.width > 20 && r.height > 12; }).map(e => (e.innerText || '').replace(/\s+/g, ' ').trim()).filter(t => t && t.length < 80)).catch(() => []);
+}
+async function pickQuality(page, quality) {
+  const wants = quality === '720' ? [/720|ขนาดเดิม|original/i] : [/1080/, /720|ขนาดเดิม|original/i];
+  for (const re of wants) {
+    const h = await page.evaluateHandle((src) => {
+      const re = new RegExp(src[0], src[1]);
+      const c = [...document.querySelectorAll('[role=menuitem],[role=menuitemradio],[role=option],[role=menu] button,[role=menu] li,[role=dialog] button,li,button')].filter(e => { const r = e.getBoundingClientRect(); return r.width > 20 && r.height > 12 && re.test(e.innerText || ''); });
+      return c.sort((a, b) => (a.innerText || '').length - (b.innerText || '').length)[0] || null;
+    }, [re.source, re.flags]);
+    const el = h.asElement();
+    if (el) { const t = ((await el.innerText().catch(() => '')) || '').replace(/\s+/g, ' ').trim(); await el.click({ timeout: 8000 }); return t || re.source; }
+  }
+  return '';
+}
+// ดักไฟล์วิดีโอที่หน้า Flow โหลด (ลิงก์จริงของคลิป) — ใช้ดึงไฟล์ตรงๆ ไม่ต้องพึ่งระบบดาวน์โหลดของ Chrome (ซึ่งหลุด/ค้างเมื่อบอทเกาะ Chrome อยู่)
+const VID_SEEN = [];
+function sniffVideos(context) {
+  if (context.__fbSniff) return; context.__fbSniff = true;
+  context.on('response', r => {
+    try {
+      const u = r.url(); if (!/^https?:/.test(u)) return;
+      const ct = (r.headers()['content-type'] || '').toLowerCase();
+      if (/^video\//.test(ct) || /\.mp4(\?|$)/i.test(u)) VID_SEEN.push({ url: u, t: Date.now(), ct, st: r.status() });
+    } catch { /* ข้าม */ }
+  });
+}
+const isMp4 = b => b && b.length > 50000 && b.slice(4, 8).toString('latin1') === 'ftyp';
+// ดึงไฟล์จากลิงก์ด้วยคุกกี้ของ Chrome บอท (ไม่ผ่านหน้าต่างดาวน์โหลด)
+async function fetchToFile(page, url, file) {
+  if (/^blob:/.test(url)) {
+    const b64 = await page.evaluate(async (u) => { const r = await fetch(u); const a = new Uint8Array(await r.arrayBuffer()); let s = ''; for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode.apply(null, a.subarray(i, i + 0x8000)); return btoa(s); }, url).catch(() => '');
+    const buf = Buffer.from(b64 || '', 'base64'); if (!isMp4(buf)) return 0; fs.writeFileSync(file, buf); return buf.length;
+  }
+  const r = await page.context().request.get(url, { timeout: 180000 }).catch(() => null);
+  if (!r || !r.ok()) return 0;
+  const buf = await r.body().catch(() => null); if (!isMp4(buf)) return 0;
+  fs.writeFileSync(file, buf); return buf.length;
+}
+// ลิงก์วิดีโอของคลิปที่เปิดอยู่: จากตัวเล่น <video> หรือจากไฟล์วิดีโอที่หน้าเพิ่งโหลด
+async function currentVideoUrls(page, since) {
+  const fromTag = await page.evaluate(() => [...document.querySelectorAll('video')].map(v => { const r = v.getBoundingClientRect(); return { src: v.currentSrc || v.src || (v.querySelector('source') || {}).src || '', area: r.width * r.height }; }).filter(x => x.src).sort((a, b) => b.area - a.area).map(x => x.src)).catch(() => []);
+  const fromNet = VID_SEEN.filter(x => x.t >= since).map(x => x.url).reverse();
+  return [...new Set([...fromTag.filter(u => /^https?:/.test(u)), ...fromNet, ...fromTag.filter(u => /^blob:/.test(u))])];
+}
+async function grabDirect(page, file, since, dbgItem) {
+  for (let t = 0; t < 20; t++) { // รอตัวเล่นโหลดไม่เกิน ~20 วินาที
+    const urls = await currentVideoUrls(page, since);
+    for (const u of urls.slice(0, 4)) {
+      const n = await fetchToFile(page, u, file).catch(() => 0);
+      dbgItem.tries.push({ url: u.slice(0, 90), bytes: n });
+      if (n) return n;
+    }
+    if (t === 2) await page.evaluate(() => { const v = [...document.querySelectorAll('video')].sort((a, b) => b.clientWidth - a.clientWidth)[0]; if (v) { v.muted = true; v.play().catch(() => {}); } }).catch(() => {});
+    await sleep(1000);
+  }
+  return 0;
+}
+async function waitTiles(page, need) { // รอการ์ดคลิปในโปรเจ็กต์โหลดครบก่อน (กันรอบแรกพังเพราะหน้ายังไม่ขึ้น)
+  for (let t = 0; t < 30; t++) {
+    const n = await page.evaluate(() => { const all = [...document.querySelectorAll('div,button,a')].filter(e => { const r = e.getBoundingClientRect(); return r.width > 30 && r.height > 20 && /^play_circle/.test((e.innerText || '').trim()); }); return all.filter(e => !all.some(o => o !== e && e.contains(o))).length; }).catch(() => 0);
+    if (n >= need) return n;
+    await sleep(1000);
+  }
+  return 0;
+}
+async function openClip(page, index, key) {
+  let opened = false;
+  if (key) { opened = await openClipByKey(page, key).catch(() => false); if (!opened) log('หาคลิปจากที่จดไว้ไม่เจอ ใช้ลำดับในหน้าแทน'); }
+  if (!opened && !(await openClipByIndex(page, index).catch(() => false))) throw new Error('หาคลิปลำดับที่ ' + (index + 1) + ' ในโปรเจ็กต์ไม่เจอ');
+}
+async function backToProject(page, projUrl) {
+  await page.keyboard.press('Escape').catch(() => {});
+  await sleep(800);
+  const box = page.locator(sel.promptBox).first();
+  if (page.url().split('?')[0] !== projUrl.split('?')[0]) await page.goBack({ timeout: 8000 }).catch(() => {});
+  if (!(await box.waitFor({ state: 'visible', timeout: 12000 }).then(() => true).catch(() => false)) || page.url().split('?')[0] !== projUrl.split('?')[0]) {
+    await page.goto(projUrl, { waitUntil: 'domcontentloaded' }).catch(() => {});
+    await box.waitFor({ state: 'visible', timeout: 25000 }).catch(() => {});
+  }
+}
+// 1080p: ให้ Flow ขยายภาพ แล้วรับไฟล์ — ดักทั้งเหตุการณ์ดาวน์โหลด (เอาลิงก์มาดึงเอง) ไฟล์วิดีโอใหม่ และปุ่ม "ดาวน์โหลด" ในแจ้งเตือนของ Flow
+async function grabUpscaled(page, file, quality, dbgItem, maxSec) {
+  const ctx = page.context();
+  const t0 = Date.now() - 1000;
+  if (!(await clickDownloadButton(page))) { dbgItem.step = 'no-download-button'; dbgItem.texts = await menuTexts(page); return 0; }
+  await sleep(1500);
+  let dl = null; const onDl = d => { dl = d; }; const onPage = p => p.on('download', onDl); ctx.on('page', onPage); for (const p of ctx.pages()) p.on('download', onDl);
+  try {
+    const picked = await pickQuality(page, quality); dbgItem.picked = picked;
+    if (!picked) dbgItem.menu = await menuTexts(page);
+    else log(`${path.basename(file)}: เลือก "${picked}" รอ Flow ทำไฟล์…`);
+    const before = new Set(VID_SEEN.filter(x => x.t < t0).map(x => x.url));
+    let toastClicked = 0;
+    for (let s = 0; s < maxSec; s++) {
+      if (dl) {
+        const u = dl.url(); dbgItem.dlUrl = u.slice(0, 90);
+        let n = 0;
+        try { await dl.saveAs(file); n = fs.existsSync(file) && isMp4(fs.readFileSync(file).subarray(0, 60000)) ? fs.statSync(file).size : 0; } catch (e) { dbgItem.saveErr = String(e.message).split('\n')[0]; }
+        if (!n && /^https?:|^blob:/.test(u)) n = await fetchToFile(page, u, file).catch(() => 0);
+        if (n) return n;
+        dl = null;
+      }
+      const fresh = VID_SEEN.filter(x => x.t >= t0 && !before.has(x.url));
+      for (const v of fresh.slice(-2)) { if (/1080|upscal/i.test(v.url)) { const n = await fetchToFile(page, v.url, file).catch(() => 0); if (n) { dbgItem.via = 'net'; return n; } } }
+      if (toastClicked < 2 && s % 3 === 2) { // แจ้งเตือน "วิดีโอพร้อมแล้ว · ดาวน์โหลด"
+        const h = await page.evaluateHandle(() => { const vis = e => { const r = e.getBoundingClientRect(); return r.width > 8 && r.height > 8; }; return [...document.querySelectorAll('[role=alert] button,[role=status] button,[role=alert] a,[role=status] a,[class*=toast] button,[class*=snack] button,[class*=toast] a,[class*=snack] a')].filter(vis).find(e => /download|ดาวน์โหลด/i.test((e.innerText || '') + ' ' + (e.getAttribute('aria-label') || ''))) || null; }).catch(() => null);
+        const el = h && h.asElement(); if (el) { toastClicked++; dbgItem.toast = toastClicked; log('กดดาวน์โหลดจากแจ้งเตือนของ Flow'); await el.click({ timeout: 5000 }).catch(() => {}); }
+      }
+      if (s === 60) { dbgItem.at60 = await menuTexts(page); await page.screenshot({ path: path.join(DATA, 'dl-wait.png') }).catch(() => {}); }
+      if (s % 15 === 14) dlEv({ step: 'wait', sec: s + 1 });
+      await sleep(1000);
+    }
+    dbgItem.step = 'timeout'; dbgItem.end = await menuTexts(page);
+    return 0;
+  } finally { ctx.off('page', onPage); for (const p of ctx.pages()) p.off('download', onDl); }
+}
+async function downloadClip(page, index, file, quality, dbg, key) {
+  const projUrl = page.url();
+  const item = { index, file: path.basename(file), quality, tries: [] }; dbg.push(item);
+  sniffVideos(page.context());
+  try {
+    await waitTiles(page, index + 1);
+    const since = Date.now() - 500;
+    await openClip(page, index, key);
+    await sleep(2500);
+    if (quality === '1080') {
+      const n = await grabUpscaled(page, file, '1080', item, 300);
+      if (n) { item.ok = '1080'; return '1080p'; }
+      log(`${path.basename(file)}: Flow ทำ 1080p ไม่เสร็จใน 5 นาที — โหลดไฟล์ต้นฉบับ (720p) แทน`);
+      await page.keyboard.press('Escape').catch(() => {});
+      await sleep(800);
+    }
+    const n = await grabDirect(page, file, since, item);
+    if (n) { item.ok = 'direct'; return quality === '1080' ? '720p (สำรอง)' : '720p'; }
+    // สุดท้าย: ปุ่มดาวน์โหลดของ Flow แบบขนาดเดิม
+    const m = await grabUpscaled(page, file, '720', item, 120);
+    if (m) { item.ok = 'menu720'; return '720p'; }
+    throw new Error('โหลดคลิปไม่ได้ (ดูไฟล์ dl-debug.json)');
+  } finally {
+    await backToProject(page, projUrl);
+  }
+}
+// ffmpeg: ใช้ตัวในเครื่องถ้ามี ไม่มีก็โหลดครั้งเดียวมาเก็บใน data/tools (Windows)
+async function ensureFfmpeg() {
+  const exe = path.join(DATA, 'tools', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
+  if (fs.existsSync(exe)) return exe;
+  if (process.platform !== 'win32') return 'ffmpeg';
+  const tmp = path.join(DATA, 'tools', 'tmp'); fs.rmSync(tmp, { recursive: true, force: true }); fs.mkdirSync(tmp, { recursive: true });
+  const zip = path.join(tmp, 'ffmpeg.zip');
+  const URLS = ['https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip', 'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-lgpl.zip'];
+  let ok = false;
+  for (const u of URLS) {
+    try {
+      log('โหลดตัวต่อคลิป (ffmpeg) ครั้งแรกครั้งเดียว ประมาณ 100MB…');
+      const r = await fetch(u, { redirect: 'follow' }); if (!r.ok) throw new Error('HTTP ' + r.status);
+      const total = Number(r.headers.get('content-length')) || 0; let got = 0, last = 0;
+      const out = fs.createWriteStream(zip);
+      for await (const chunk of r.body) { out.write(chunk); got += chunk.length; const pc = total ? Math.floor(got * 100 / total) : 0; if (pc >= last + 5) { last = pc; dlEv({ step: 'ffmpeg', pc }); } }
+      await new Promise(res => out.end(res));
+      ok = got > 5e6; if (ok) break;
+    } catch (e) { log('โหลด ffmpeg จาก ' + new URL(u).host + ' ไม่ได้: ' + e.message); }
+  }
+  if (!ok) throw new Error('โหลดตัวต่อคลิป (ffmpeg) ไม่สำเร็จ — เช็คอินเทอร์เน็ต แล้วลองใหม่');
+  require('child_process').execFileSync('powershell', ['-NoProfile', '-Command', `Expand-Archive -Path '${zip}' -DestinationPath '${tmp}\\x' -Force`], { timeout: 300000 });
+  const find = d => { for (const f of fs.readdirSync(d)) { const p = path.join(d, f); if (fs.statSync(p).isDirectory()) { const r = find(p); if (r) return r; } else if (/^ffmpeg\.exe$/i.test(f)) return p; } return null; };
+  const found = find(path.join(tmp, 'x')); if (!found) throw new Error('ไม่พบ ffmpeg.exe ในไฟล์ที่โหลดมา');
+  fs.copyFileSync(found, exe); fs.rmSync(tmp, { recursive: true, force: true });
+  log('ติดตั้งตัวต่อคลิปแล้ว (ครั้งต่อไปไม่ต้องโหลดอีก)');
+  return exe;
+}
+function runFf(exe, args) {
+  return new Promise(res => { const p = require('child_process').spawn(exe, args, { windowsHide: true }); let err = ''; p.stderr.on('data', d => { err = (err + d).slice(-3000); }); p.on('error', e => res({ code: -1, err: e.message })); p.on('exit', code => res({ code, err })); });
+}
+async function joinClips(files, out) {
+  const exe = await ensureFfmpeg();
+  const list = path.join(path.dirname(out), 'list.txt');
+  fs.writeFileSync(list, files.map(f => "file '" + f.replace(/\\/g, '/').replace(/'/g, "'\\''") + "'").join('\n'));
+  dlEv({ step: 'join' }); log('กำลังต่อคลิปเป็นไฟล์เดียว…');
+  let r = await runFf(exe, ['-y', '-hide_banner', '-f', 'concat', '-safe', '0', '-i', list, '-c', 'copy', '-movflags', '+faststart', out]);
+  const need = files.reduce((t, f) => t + fs.statSync(f).size, 0) * 0.6;
+  if (r.code !== 0 || !fs.existsSync(out) || fs.statSync(out).size < need) { // คลิปไม่เข้าชุดกัน → เข้ารหัสใหม่ (ช้ากว่า แต่ต่อได้แน่)
+    log('ต่อแบบเร็วไม่ได้ เข้ารหัสใหม่ทั้งคลิป (ช้ากว่าเล็กน้อย)…');
+    r = await runFf(exe, ['-y', '-hide_banner', '-f', 'concat', '-safe', '0', '-i', list, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', out]);
+  }
+  try { fs.unlinkSync(list); } catch { /* ข้าม */ }
+  if (r.code !== 0) throw new Error('ต่อคลิปไม่สำเร็จ: ' + String(r.err).split('\n').filter(Boolean).slice(-2).join(' '));
+}
+// แคปชั่นจากคำตอบ AI (บรรทัด CAPTION ใน prompts.txt) ถ้ามี
+function captionFromPrompts() {
+  try { const t = fs.readFileSync(path.join(DATA, 'prompts.txt'), 'utf8'); const m = t.match(/(?:^|\n)\s*\**CAPTION\**\s*:?\s*\n([\s\S]*?)(?:\n\s*\**CHECKLIST|$)/i); return m ? m[1].trim() : ''; } catch { return ''; }
+}
+
 // ---------- ขั้นตอนหลัก: เจนรูปคีย์เฟรม (มีตรวจ/เจนใหม่แบบลูกโซ่) → เจนวิดีโอ ----------
 const IMPL = { image: (...a) => runImageStep(...a), video: (...a) => runVideoStep(...a), why: (...a) => failReason(...a), qc: (...a) => (process.env.FLOWBOT_SIM ? null : qcAfterVideo(...a)) }; // เปลี่ยนได้ตอนทดสอบ (FLOWBOT_SIM)
 // หน้าตัวละครถูก Flow ปฏิเสธเพราะคล้ายคนดัง → ปรับหน้าใน prompt ของรูป Character Sheet แล้ววาดใหม่ 1 ครั้ง
@@ -1126,6 +1366,9 @@ async function runPipeline(page, segments) {
   }
 
   sendEv('PHASE', 'videos');
+  let clipRec = { proj: '', list: [] };
+  if (resume) { try { clipRec = JSON.parse(fs.readFileSync(CLIPS_FILE, 'utf8')); } catch { /* ใหม่ */ } }
+  clipRec.list = vids.map((v, i) => (clipRec.list || [])[i] || null);
   for (const x of vids) {
     if (state.vids[x.n] === 'done') { sendEv('VID', JSON.stringify({ seg: x.n, status: 'done' })); continue; }
     sendEv('VID', JSON.stringify({ seg: x.n, status: 'gen' }));
@@ -1171,8 +1414,10 @@ async function runPipeline(page, segments) {
         if (st2 === 'done') { try { await IMPL.qc(page, x); } catch { /* ข้าม */ } }
       }
     }
+    if (!process.env.FLOWBOT_SIM) { try { const k = await clipKeyAt(page, 0); clipRec.list[vids.indexOf(x)] = k; clipRec.proj = page.url(); fs.writeFileSync(CLIPS_FILE, JSON.stringify(clipRec)); } catch { /* ไม่เป็นไร */ } }
     await sleep(cfg.delayBetweenMs);
   }
+  try { fs.writeFileSync(LAST_PROJECT, page.url()); } catch { /* ข้าม */ }
   sendEv('PHASE', 'done');
   log('สำเร็จครบทุกขั้นตอน คลิปอยู่ใน Flow แล้ว');
   return 'done';
@@ -1275,6 +1520,91 @@ async function runPipeline(page, segments) {
     log(`ได้คำตอบจาก ${AI_SITES[key].name} แล้ว (${text.length} ตัวอักษร, กล่องโค้ด ${(text.match(/```/g) || []).length / 2} กล่อง)`);
     return;
   }
+  if (process.argv[2] === 'shop') {
+    // ดึงข้อมูลสินค้า Shopee จากลิงก์ (เปิดในหน้าต่าง Chrome ของบอท ใช้การล็อกอินของลูกค้าเอง) → data/shop.json + รูปใน data/shop/
+    const url = String(process.argv[3] || '').trim();
+    const SHOP_DIR = path.join(DATA, 'shop');
+    fs.rmSync(SHOP_DIR, { recursive: true, force: true }); fs.mkdirSync(SHOP_DIR, { recursive: true });
+    const out = { ok: false, url, title: '', price: '', desc: '', imgs: [], error: '' };
+    const save = () => fs.writeFileSync(path.join(DATA, 'shop.json'), JSON.stringify(out, null, 1));
+    const pg = await context.newPage();
+    let api = null;
+    pg.on('response', async r => {
+      try {
+        const u = r.url();
+        if (!/\/api\/v4\/(pdp\/get_pc|pdp\/get|item\/get)\b/.test(u)) return;
+        const j = await r.json(); const d = j && (j.data || j);
+        const it = d && (d.item || d);
+        if (it && (it.title || it.name)) api = { item: it, all: d };
+      } catch { /* ไม่ใช่ JSON */ }
+    });
+    log('เปิดลิงก์สินค้า Shopee ในหน้าต่างบอท…');
+    await pg.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(e => log('เปิดหน้าไม่ครบ: ' + e.message));
+    const blocked = () => /verify|captcha|anti_?bot|buyer\/login|\/login\b/i.test(pg.url());
+    for (let t = 0; t < 20 && !api && !blocked(); t++) await sleep(1000);
+    await sleep(1500);
+    // อ่านจากหน้าเว็บด้วย (สำรองเมื่ออ่านข้อมูลเบื้องหลังไม่ได้)
+    const dom = await pg.evaluate(() => {
+      const meta = n => { const m = document.querySelector(`meta[property="${n}"],meta[name="${n}"]`); return m ? m.content || '' : ''; };
+      const h1 = document.querySelector('h1');
+      const body = document.body ? document.body.innerText : '';
+      const prices = (body.match(/฿\s?[\d,]+(?:\.\d+)?/g) || []).slice(0, 3);
+      let desc = '';
+      const head = [...document.querySelectorAll('div,h2,section')].find(e => /^\s*(รายละเอียดสินค้า|Product Description)\s*$/i.test(e.textContent || '') && e.children.length < 3);
+      if (head && head.parentElement) desc = head.parentElement.innerText.replace(/^\s*(รายละเอียดสินค้า|Product Description)\s*/i, '');
+      const imgs = [];
+      document.querySelectorAll('img').forEach(i => { [i.src, ...(i.srcset || '').split(',').map(s => s.trim().split(' ')[0])].forEach(s => { if (s && /susercontent\.com\/file\//.test(s)) imgs.push(s); }); });
+      document.querySelectorAll('[style*="susercontent"]').forEach(e => { const m = (e.getAttribute('style') || '').match(/url\(["']?([^"')]+susercontent[^"')]+)/); if (m) imgs.push(m[1]); });
+      return { title: meta('og:title') || (h1 ? h1.innerText : '') || document.title, desc: desc || meta('og:description') || meta('description'), og: meta('og:image'), prices, imgs };
+    }).catch(() => ({}));
+    const host = (() => { try { return new URL(pg.url()).host; } catch { return ''; } })();
+    const cc = (host.match(/shopee\.(co\.)?([a-z]{2,3})$/) || [])[2] || 'th';
+    const cdn = h => `https://down-${cc === 'com' ? 'sg' : cc}.img.susercontent.com/file/${h}`;
+    const hashes = [];
+    const addHash = h => { h = String(h || '').replace(/^.*\/file\//, '').replace(/[_@].*$/, '').replace(/\?.*$/, ''); if (/^[\w-]{20,}$/.test(h) && !hashes.includes(h)) hashes.push(h); };
+    if (api) {
+      const it = api.item;
+      out.title = String(it.title || it.name || '').trim();
+      out.desc = String(it.description || (api.all && api.all.product_detail && api.all.product_detail.description) || '').trim();
+      const P = v => (v > 100000 ? v / 100000 : v);
+      const pr = it.price || {}, lo = P(pr.single_value || pr.range_min || it.price_min || it.price || 0), hi = P(pr.range_max || it.price_max || 0);
+      if (typeof lo === 'number' && lo > 0) out.price = '฿' + lo.toLocaleString('en-US') + (hi > lo ? ' - ฿' + hi.toLocaleString('en-US') : '');
+      const walk = (o, d) => { if (!o || d > 6) return; if (Array.isArray(o)) { o.forEach(x => typeof x === 'string' ? addHash(x) : walk(x, d + 1)); return; } if (typeof o === 'object') for (const [k, v] of Object.entries(o)) { if (/^(image|images|image_url)$/.test(k)) { if (typeof v === 'string') addHash(v); else walk(v, d + 1); } else if (/image|product_images|item/.test(k) && typeof v === 'object') walk(v, d + 1); } };
+      walk(it, 0); if (api.all && api.all.product_images) walk(api.all.product_images, 0);
+    }
+    if (!out.title && dom.title) out.title = String(dom.title).replace(/\s*[|\-–]\s*Shopee.*$/i, '').trim();
+    if (!out.desc && dom.desc) out.desc = String(dom.desc).trim();
+    if (!out.price && dom.prices && dom.prices.length) out.price = dom.prices[0];
+    if (dom.og) addHash(dom.og);
+    (dom.imgs || []).forEach(addHash);
+    out.desc = out.desc.replace(/\n{3,}/g, '\n\n').slice(0, 3000);
+    if (!out.title || /^shopee/i.test(out.title) && !hashes.length) {
+      out.error = blocked() ? 'Shopee ขอให้ยืนยันตัวตนหรือล็อกอินก่อน — ทำในหน้าต่าง Chrome ของบอทที่เปิดอยู่ แล้วกด "ดึงข้อมูล" อีกครั้ง' : 'อ่านข้อมูลสินค้าไม่ได้ — ตรวจว่าลิงก์เปิดหน้าสินค้าได้ (ถ้าหน้าในบอทขอให้ล็อกอิน/ยืนยัน ทำให้เรียบร้อยแล้วกดอีกครั้ง) หรือใส่รูปสินค้าเองแทน';
+      await pg.bringToFront().catch(() => {});
+      save(); log(out.error); process.exitCode = 2; return;
+    }
+    // โหลดรูปสินค้า (ใช้คุกกี้ของหน้าต่างบอท) สูงสุด 8 รูป
+    let n = 0;
+    for (const h of hashes.slice(0, 12)) {
+      if (n >= 8) break;
+      try {
+        let buf = null;
+        try { const r = await context.request.get(cdn(h), { headers: { Accept: 'image/jpeg,image/png,image/*;q=0.8', Referer: 'https://' + (host || 'shopee.co.th') + '/' }, timeout: 20000 }); if (r.ok()) buf = await r.body(); } catch { /* ลองโหลดผ่านหน้าเว็บแทน */ }
+        if (!buf || buf.length < 4000) { // โหลดผ่านหน้าเว็บที่เปิดอยู่ (เบราว์เซอร์จริง)
+          const b64 = await pg.evaluate(async u => { try { const r = await fetch(u, { headers: { Accept: 'image/jpeg,image/png,image/*;q=0.8' } }); if (!r.ok) return ''; const a = new Uint8Array(await r.arrayBuffer()); let s = ''; for (let i = 0; i < a.length; i += 32768) s += String.fromCharCode.apply(null, a.subarray(i, i + 32768)); return btoa(s); } catch { return ''; } }, cdn(h)).catch(() => '');
+          if (b64) buf = Buffer.from(b64, 'base64');
+        }
+        if (!buf || buf.length < 4000) continue;
+        const ext = buf[0] === 0xff && buf[1] === 0xd8 ? 'jpg' : buf[0] === 0x89 && buf[1] === 0x50 ? 'png' : buf.slice(8, 12).toString() === 'WEBP' ? 'webp' : '';
+        if (!ext) continue;
+        const f = `p${++n}.${ext}`; fs.writeFileSync(path.join(SHOP_DIR, f), buf); out.imgs.push(f);
+      } catch (e) { log('โหลดรูปไม่ได้: ' + String(e.message).split('\n')[0]); }
+    }
+    out.ok = true; save();
+    await pg.close().catch(() => {});
+    log(`ดึงสินค้าแล้ว: ${out.title.slice(0, 60)} · ${out.price || 'ไม่พบราคา'} · รูป ${out.imgs.length} รูป`);
+    return;
+  }
   let page = context.pages().find(p => p.url().includes('flow'));
   if (!page) {
     page = await context.newPage();
@@ -1282,6 +1612,40 @@ async function runPipeline(page, segments) {
   }
   await keepAlive(page); // หน้า Flow ทำงานต่อได้แม้ผู้ใช้ไปทำอย่างอื่น ไม่ต้องดึงแท็บขึ้นหน้า
 
+  if (process.argv[2] === 'dl') {
+    // คลิปพร้อมโพสต์: โหลด N คลิปล่าสุดของโปรเจ็กต์ (เก่า→ใหม่ = ท่อน 1→N) แล้วต่อเป็นไฟล์เดียว
+    const count = Math.max(1, Math.min(30, Number(process.argv[3]) || 1));
+    const quality = process.env.FLOWBOT_DLQ === '720' ? '720' : '1080';
+    const outDir = process.env.FLOWBOT_DL_DIR || path.join(DATA, 'clips');
+    fs.mkdirSync(outDir, { recursive: true });
+    let proj = ''; try { proj = fs.readFileSync(LAST_PROJECT, 'utf8').trim(); } catch { /* ไม่มี */ }
+    if (proj && page.url().split('?')[0] !== proj.split('?')[0]) { log('เปิดโปรเจ็กต์ล่าสุดของบอท…'); await page.goto(proj, { waitUntil: 'domcontentloaded' }).catch(() => {}); await page.locator(sel.promptBox).first().waitFor({ state: 'visible', timeout: 30000 }).catch(() => {}); await sleep(3000); }
+    let rec = null; try { rec = JSON.parse(fs.readFileSync(CLIPS_FILE, 'utf8')); } catch { /* ไม่มี */ }
+    const keys = rec && Array.isArray(rec.list) && rec.list.length === count && rec.list.every(Boolean) && (!rec.proj || rec.proj.split('?')[0] === page.url().split('?')[0]) ? rec.list : null;
+    log(keys ? 'ใช้รายการคลิปที่บอทจดไว้ตอนทำงาน (ถูกท่อนแม้มีคลิปเจนซ้ำ)' : 'ไม่มีรายการที่จดไว้ตรงกับจำนวนนี้ ใช้คลิปล่าสุดตามลำดับในหน้า');
+    const dbg = [], files = [];
+    for (let k = 1; k <= count; k++) {
+      const index = count - k; // คลิปใหม่สุดอยู่ลำดับแรก
+      const file = path.join(outDir, `ท่อน${String(k).padStart(2, '0')}.mp4`);
+      dlEv({ step: 'clip', k, count }); log(`โหลดท่อน ${k}/${count} (${quality}p)…`);
+      let ok = false;
+      for (let a = 1; a <= 2 && !ok; a++) {
+        try { const got = await downloadClip(page, index, file, quality, dbg, keys ? keys[k - 1] : null); ok = true; log(`ท่อน ${k}: ได้แล้ว (${got})`); dlEv({ step: 'got', k, q: got }); }
+        catch (e) { log(`ท่อน ${k}: ${e.message}${a < 2 ? ' — ลองอีกครั้ง' : ''}`); await sleep(3000); }
+      }
+      fs.writeFileSync(path.join(DATA, 'dl-debug.json'), JSON.stringify(dbg, null, 1));
+      if (!ok) { await page.screenshot({ path: path.join(DATA, 'fail-dl.png') }).catch(() => {}); throw new Error(`โหลดท่อน ${k} ไม่สำเร็จ`); }
+      files.push(file);
+    }
+    const stamp = new Date(); const pad = n => String(n).padStart(2, '0');
+    const out = path.join(outDir, `คลิปพร้อมโพสต์-${pad(stamp.getHours())}${pad(stamp.getMinutes())}.mp4`);
+    if (files.length === 1) fs.copyFileSync(files[0], out); else await joinClips(files, out);
+    const cap = captionFromPrompts(); if (cap) fs.writeFileSync(path.join(outDir, 'แคปชั่น.txt'), '﻿' + cap, 'utf8');
+    dlEv({ step: 'done', file: out, folder: outDir, caption: !!cap });
+    try { const cs = await browser.newBrowserCDPSession(); await cs.send('Browser.setDownloadBehavior', { behavior: 'default' }); } catch { /* ข้าม */ } // คืนการดาวน์โหลดของ Chrome ให้ปกติ (ไม่ให้ไฟล์ที่ผู้ใช้โหลดเองกลายเป็นชื่อรหัส)
+    log(`เสร็จแล้ว: ${out}`);
+    return;
+  }
   if (process.argv[2] === 'qctest') {
     // ทดสอบระบบตรวจคลิปกับคลิปที่มีอยู่แล้วในโปรเจ็กต์ (ไม่สร้างคลิปใหม่ ไม่เสียเครดิต): qctest <จำนวนคลิป> [ai]
     const n = Number(process.argv[3]) || 3, withAi = process.argv[4] === 'ai';
