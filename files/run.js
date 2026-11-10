@@ -15,7 +15,7 @@ const DATA = process.env.FLOWBOT_DATA || __dirname;
 const cfg = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
 cfg.qc = 'basic'; // ตรวจคลิปแบบตัวเลขเป็นค่าเริ่มต้น (ปรับได้ในฟันเฟือง)
 // การตั้งค่าจากหน้าจอ (ฟันเฟือง) ทับค่าใน config.json
-try { const st = JSON.parse(fs.readFileSync(path.join(DATA, 'settings.json'), 'utf8')); if (st.ratio) cfg.ratio = st.ratio; if (st.videoSeconds) cfg.videoSeconds = Number(st.videoSeconds); if (st.videoMode) cfg.videoMode = st.videoMode; if (st.dedupe) cfg.dedupe = true; if (st.qc) cfg.qc = st.qc; if (st.qcRedo) cfg.qcRedo = true; if (st.ai) cfg.ai = st.ai; } catch { /* ไม่มีไฟล์ตั้งค่า */ }
+try { const st = JSON.parse(fs.readFileSync(path.join(DATA, 'settings.json'), 'utf8')); if (st.ratio) cfg.ratio = st.ratio; if (st.videoSeconds) cfg.videoSeconds = Number(st.videoSeconds); if (st.videoMode) cfg.videoMode = st.videoMode; if (st.dedupe) cfg.dedupe = true; if (st.qc) cfg.qc = st.qc; if (st.qcRedo) cfg.qcRedo = true; if (st.ai) cfg.ai = st.ai; if (st.model) cfg.model = st.model; } catch { /* ไม่มีไฟล์ตั้งค่า */ }
 const profileDir = path.join(DATA, 'chrome-profile'); // โปรไฟล์แยกของบอท ล็อกอินครั้งเดียว
 // พอร์ตควบคุม Chrome ของบอท: ปกติ 9222 แต่ถ้าโปรแกรมอื่นในเครื่องใช้พอร์ตนี้อยู่ (ตอบ 404) บอทจะย้ายไปพอร์ตว่างและจำไว้
 const PORT_FILE = path.join(DATA, 'cdp-port.txt');
@@ -239,14 +239,65 @@ async function openSettings(page, isOpen) {
   throw new Error(`เปิดเมนูตั้งค่าของ Flow ไม่ได้ — ${why} · ไปที่หน้าต่าง Chrome ของบอท ปิดหน้าต่าง/ป๊อปอัปที่ค้างอยู่ แล้วกด "ลองใหม่" (ถ้ายังไม่ได้ กด "ส่งรายงานปัญหา" — ในรายงานมีภาพหน้าจอตอนนั้นแล้ว)`);
 }
 
+// แถบเลื่อน "ความยาว" ของ Flow (พ.ย. 2026): อ่านป้าย "N วินาที" แล้วกดลูกศรซ้าย/ขวาจนตรง
+async function setLength(page, target) {
+  const sl = page.locator('input[type=range], [role=slider]').first();
+  if (!(await sl.isVisible().catch(() => false))) { log(`ไม่เจอตัวเลือกความยาว ${target} วินาที — ใช้ค่าเดิมของ Flow`); return false; }
+  const cur = () => page.evaluate(() => {
+    for (const e of document.querySelectorAll('div,span,p,label')) { if (e.children.length) continue; const m = (e.innerText || '').trim().match(/^(\d{1,2})\s*(วินาที|วิ|s|sec|seconds)$/i); if (m) return Number(m[1]); }
+    const s = document.querySelector('input[type=range], [role=slider]'); const v = Number(s && (s.value || s.getAttribute('aria-valuenow'))); return isNaN(v) ? null : v;
+  }).catch(() => null);
+  await sl.focus().catch(() => {});
+  for (let i = 0; i < 24; i++) {
+    const c = await cur(); if (c === target) { log(`ตั้งความยาว ${target} วินาที`); return true; } if (c == null) break;
+    await page.keyboard.press(c < target ? 'ArrowRight' : 'ArrowLeft'); await sleep(250);
+    if (i > 2 && (await cur()) === c) break;
+  }
+  const now = await cur();
+  if (typeof now === 'number' && now < target - 0.5) // บัญชีนี้ทำได้สั้นกว่าที่ Prompt เขียนไว้ → หยุดก่อนเสียเครดิต
+    throw new Error(`บัญชี Google Flow นี้ตั้งความยาวได้สูงสุด ${now} วินาที แต่ตั้งไว้ ${target} วินาที — เปลี่ยน "ความยาวต่อท่อน" ในตั้งค่าเป็น ${now} วินาที แล้วให้ AI เขียน Prompt ใหม่ (บอทหยุดก่อน ยังไม่เสียเครดิต)`);
+  log(`ตั้งความยาว ${target} วินาทีไม่ได้ (ตอนนี้ ${now}) — ใช้ค่าเดิมของ Flow`); return false;
+}
+
+// เลือกโมเดลวิดีโอของ Flow (Omni 1.1 / 1.2 Flash) จากเมนู "เลือกกลุ่มผลิตภัณฑ์โมเดล" ในแผงตั้งค่า (เจอจริงใน Flow 10 พ.ย. 2026)
+async function setModel(page, key) {
+  const M = lib.MODELS[key]; if (!M) return;
+  const btn = page.locator(sel.modelButton || 'button[aria-label="เลือกกลุ่มผลิตภัณฑ์โมเดล"]').first();
+  if (!(await btn.isVisible().catch(() => false))) { log('ไม่เจอปุ่มเลือกโมเดลใน Flow — ใช้โมเดลที่ Flow ตั้งไว้'); return; }
+  const cur = async () => (await btn.innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
+  if (M.re.test(await cur())) { log(`โมเดล: ${M.name}`); return; }
+  const items = page.locator('[role=menuitem]').filter({ hasText: /omni|veo/i });
+  await btn.click({ timeout: 5000 }).catch(() => {}); await sleep(900);
+  if (!(await items.first().isVisible().catch(() => false))) { await btn.click({ force: true, timeout: 5000 }).catch(() => {}); await sleep(900); }
+  const all = (await items.allInnerTexts().catch(() => [])).map(t => t.replace(/\s+/g, ' ').trim());
+  const it = items.filter({ hasText: M.re }).first();
+  if (!(await it.isVisible().catch(() => false))) {
+    await page.keyboard.press('Escape').catch(() => {});
+    if (all.length) throw new Error(`ใน Google Flow ไม่มีโมเดล ${M.name} ให้เลือกแล้ว (มี: ${all.join(' / ')}) — เปลี่ยนโมเดลที่แท็บ "ข่าวสาร" หรือในตั้งค่า แล้วกด "ลองใหม่" (บอทหยุดก่อน ยังไม่เสียเครดิต)`);
+    throw new Error(`เปิดเมนูเลือกโมเดลของ Flow ไม่ได้ — บอทหยุดก่อน ยังไม่เสียเครดิต · ลองเปลี่ยนเป็น ${M.name} เองในหน้าต่าง Chrome ของบอท แล้วกด "ลองใหม่"`);
+  }
+  await it.click({ timeout: 5000 }).catch(() => {}); await sleep(1000);
+  if (!M.re.test(await cur())) throw new Error(`เปลี่ยนโมเดลใน Flow เป็น ${M.name} ไม่สำเร็จ (ตอนนี้: ${await cur()}) — บอทหยุดก่อน ยังไม่เสียเครดิต`);
+  log(`เปลี่ยนโมเดลเป็น ${M.name}`);
+}
+
 // ตั้งโหมด: type = image | video, frames = ใช้โหมดเฟรม (วิดีโอ), พร้อมสัดส่วน/วินาที/จำนวนจาก config.json
 async function setMode(page, { type, frames }) {
   const isOpen = async () => (await page.locator('button[role=radio]').count()) > 0 && await page.locator('button[role=radio]').first().isVisible().catch(() => false);
   if (!(await isOpen())) await openSettings(page, isOpen);
   await clickRadio(page, type === 'image' ? ['รูปภาพ', 'Image'] : ['วิดีโอ', 'Video']); await sleep(800);
   if (type === 'video') { await clickRadio(page, frames ? ['เฟรม', 'Frames'] : ['องค์ประกอบ', 'Ingredients']); await sleep(600); }
+  if (type === 'video' && cfg.model) {
+    const mk = lib.effModel(cfg.model);
+    if (mk === 'o11' && Number(cfg.videoSeconds) > 10) throw new Error(`Omni 1.1 Flash ทำได้ยาวสุด 10 วินาที แต่ตั้งไว้ ${cfg.videoSeconds} วินาที — เปลี่ยนเป็น Omni 1.2 หรือตั้ง 10 วินาทีแล้วให้ AI เขียน Prompt ใหม่ (บอทหยุดก่อน ยังไม่เสียเครดิต)`);
+    await setModel(page, mk); await sleep(500);
+  }
   if (cfg.ratio) await clickRadio(page, cfg.ratio);
-  if (type === 'video' && cfg.videoSeconds) await clickRadio(page, [`${cfg.videoSeconds} วินาที`, `${cfg.videoSeconds}s`, `${cfg.videoSeconds} s`]);
+  if (type === 'video' && cfg.videoSeconds) {
+    const ok = (await page.locator('button[role=radio]').evaluateAll((els, s) => els.some(e => { const t = (e.innerText || '').replace(/\s+/g, ' ').trim(); return t === s + ' วินาที' || t === s + 's'; }), cfg.videoSeconds).catch(() => false))
+      && await clickRadio(page, [`${cfg.videoSeconds} วินาที`, `${cfg.videoSeconds}s`, `${cfg.videoSeconds} s`]);
+    if (!ok) await setLength(page, Number(cfg.videoSeconds)); // Flow รุ่นใหม่: ความยาวเป็นแถบเลื่อน
+  }
   await clickRadio(page, 'x' + (type === 'image' ? (cfg.imageCount || 1) : (cfg.videoCount || 1)));
   await sleep(400);
   await page.keyboard.press('Escape'); await sleep(800);

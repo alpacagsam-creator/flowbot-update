@@ -22,7 +22,7 @@ const { execFileSync, exec } = require('child_process');
 const SB_URL = process.env.FLOWBOT_SB_URL || 'https://sxlruybflafinnlakoyv.supabase.co'; // (ENV ใช้ตอนทดสอบเท่านั้น)
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4bHJ1eWJmbGFmaW5ubGFrb3l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMzY4NzQsImV4cCI6MjEwOTgxMjg3NH0.bKbrdPLwwqT77IKUe-SFh1fqs30EwW2M52s5FcXMWOQ';
 const SITE = 'https://napbot.online';
-const FB_PAGE = ''; // ลิงก์เพจ NapBot (ใส่ทีหลัง)
+const FB_PAGE = 'https://www.facebook.com/profile.php?id=61595690794227'; // เพจ NapBot
 const GRACE_DAYS = 14; // เครื่องลูกค้าเก่า (ใช้บอทมาก่อนอัปเดตนี้) ใช้ต่อได้ 14 วันโดยไม่ต้องล็อกอิน
 
 let DATA = '.', FILE = '';
@@ -231,7 +231,7 @@ function makeReport(note) {
 }
 
 // ---------- ตั้งค่า ----------
-const DEFAULTS = { ratio: '9:16', videoSeconds: 10, ai: 'claude', review: true, precheck: true, riskAuto: 'ai', onReject: 'ai', auto: false, parts: 4, videoMode: 'auto', qc: 'basic', qcRedo: false, dedupe: false, ackRisk: false, autoUpdate: true, autoDl: false, dlQ: '1080', login: {} };
+const DEFAULTS = { ratio: '9:16', videoSeconds: 10, ai: 'claude', review: true, precheck: true, riskAuto: 'ai', onReject: 'ai', auto: false, parts: 4, videoMode: 'auto', qc: 'basic', qcRedo: false, dedupe: false, ackRisk: false, autoUpdate: true, autoDl: false, dlQ: '1080', model: 'o12', login: {} };
 let settings = { ...DEFAULTS };
 try { settings = { ...DEFAULTS, ...JSON.parse(fs.readFileSync(F('settings.json'), 'utf8')) }; } catch { /* ใช้ค่าเริ่มต้น */ }
 const saveSettings = () => fs.writeFileSync(F('settings.json'), JSON.stringify(settings, null, 2));
@@ -429,7 +429,7 @@ function ingest(text, from, requirePipeline, quiet, converted) {
 function afterIngest() {
   const raw = readPrompts(), plan = lib.planOf(raw);
   job.plan = mkPlan(plan);
-  job.credits = lib.estimateCredits(plan, settings.videoSeconds);
+  job.credits = lib.estimateCredits(plan, settings.videoSeconds, settings.model);
   job.risks = settings.precheck && !job.lightened ? decorate(lib.riskScan(raw), plan) : [];
   if (job.risks.length) {
     if (!settings.auto || settings.riskAuto === 'ask') return setPhase('pre');
@@ -570,9 +570,11 @@ function handleStop(seg, why) {
     return setPhase('fix');
   }
   // ปัญหาทางเทคนิค (ไม่ใช่ Flow ปฏิเสธเนื้อหา) → ไม่ส่งให้ AI เขียน prompt ใหม่ เพราะแก้ไม่ได้และเสียเวลา
-  if (/ไม่พบรูปอ้างอิง|locator\.|Timeout \d+ms|waiting for locator|Target (page|closed)|net::|Execution context/i.test(why || '')) {
+  if (/ไม่พบรูปอ้างอิง|ตั้งความยาวได้สูงสุด|เมนูเลือกโมเดล|Omni 1\.[12] Flash|locator\.|Timeout \d+ms|waiting for locator|Target (page|closed)|net::|Execution context/i.test(why || '')) {
     job.stop.technical = true;
     if (/ไม่พบรูปอ้างอิง/.test(why)) job.stop.why = (why.match(/ไม่พบรูปอ้างอิง[^\n]*/) || [why])[0];
+    else if (/เมนูเลือกโมเดล|Omni 1\.[12] Flash/.test(why)) job.stop.why = String(why).split('\n').find(l => /โมเดล|Omni/.test(l)) || why;
+    else if (/ตั้งความยาวได้สูงสุด/.test(why)) job.stop.why = (why.match(/บัญชี Google Flow นี้ตั้งความยาว[^\n]*/) || [why])[0];
     else job.stop.why = 'หน้า Flow ไม่ตอบสนองตามที่บอทคาด (ไม่ใช่ prompt มีปัญหา) — ปิดหน้าต่างเมนูที่ค้างใน Chrome ของบอท แล้วกด "ทำต่อ" หรือกด "ส่งรายงานปัญหา" · รายละเอียด: ' + String(why || '').replace(/\s+/g, ' ').slice(0, 220);
     addLog('หยุด: ' + job.stop.why);
     return setPhase('fix');
@@ -672,7 +674,7 @@ function publicState() {
   return {
     version: VERSION, phase: job.phase, film: !!job.film, faces: !!job.faces, story: (job.story || []).map(x => ({ role: x.role, place: x.place, what: x.what })), msg: job.msg, error: job.error, notice: job.notice, topic: job.topic,
     plan: P, imgsDone, vidsDone, risks: job.risks, credits: job.credits, stop: job.stop, instruction: job.instruction,
-    edit: job.edit, settings, ai: AI_NAME[settings.ai], busy: !!child, lic: lic.state(), log: logLines.slice(-150),
+    edit: job.edit, settings, model: { eff: lib.effModel(settings.model), gone11: lib.o11Gone(), end: lib.O11_END }, ai: AI_NAME[settings.ai], busy: !!child, lic: lic.state(), log: logLines.slice(-150),
     update: { ...upd.state, auto: settings.autoUpdate, boot: !!process.env.FLOWBOT_BOOT }, sys: SYS, conn, part: partNo, refs: readRefs().map(x => ({ name: x.name, file: x.file, kind: x.kind || 'other', note: x.note || '', on: x.on !== false })), approved: job.approved, flagged: P ? P.images.filter(x => x.flag).map(x => x.name) : [],
   };
 }
@@ -690,8 +692,8 @@ http.createServer(async (req, res) => {
       try { if (fs.readFileSync(path.join(APP, 'edition.txt'), 'utf8').trim() === 'en') html = html.replace('<meta name="fb-lang" content="th">', '<meta name="fb-lang" content="en">'); } catch { /* ไม่มีไฟล์ = ไทย */ }
       return send(res, 200, Buffer.from(html, 'utf8'), 'text/html; charset=utf-8');
     }
-    if (req.method === 'GET' && p === '/api/instruction') return send(res, 200, { text: lib.buildInstruction({ topic: lib.isEn() ? '(type your topic here)' : '(พิมพ์หัวข้อเรื่องตรงนี้)', parts: settings.parts, ratio: settings.ratio, seconds: settings.videoSeconds, videoMode: settings.videoMode, refs: activeRefs(), part: partNo }) });
-    if (req.method === 'GET' && p === '/api/export-snippet') return send(res, 200, { text: lib.buildExportSnippet({ parts: settings.parts, ratio: settings.ratio, seconds: settings.videoSeconds, videoMode: settings.videoMode, refs: activeRefs() }) });
+    if (req.method === 'GET' && p === '/api/instruction') return send(res, 200, { text: lib.buildInstruction({ topic: lib.isEn() ? '(type your topic here)' : '(พิมพ์หัวข้อเรื่องตรงนี้)', parts: settings.parts, ratio: settings.ratio, seconds: settings.videoSeconds, model: settings.model, videoMode: settings.videoMode, refs: activeRefs(), part: partNo }) });
+    if (req.method === 'GET' && p === '/api/export-snippet') return send(res, 200, { text: lib.buildExportSnippet({ parts: settings.parts, ratio: settings.ratio, seconds: settings.videoSeconds, model: settings.model, videoMode: settings.videoMode, refs: activeRefs() }) });
     if (req.method === 'GET' && p === '/api/state') return send(res, 200, publicState());
     if (req.method === 'GET' && p === '/api/series') return send(res, 200, { list: readSeries() });
     if (req.method === 'GET' && p.startsWith('/shopimg/')) { // รูปสินค้าที่ดึงจาก Shopee (ยังไม่ใช่รูปอ้างอิง)
@@ -711,7 +713,9 @@ http.createServer(async (req, res) => {
     // ไม่มีสิทธิ์ = ใช้อะไรไม่ได้เลย (เหลือแค่ บัญชี / ตั้งค่า / หยุด / อัปเดต / ส่งรายงานปัญหา)
     if (!LIC_FREE.has(p) && !(await lic.allowed().catch(() => false))) return send(res, 200, { ok: false, locked: true, error: '🔒 ยังใช้งานไม่ได้ — เข้าสู่ระบบ/ขอสิทธิ์ที่ปุ่มบัญชีมุมขวาบน' });
     if (p === '/api/settings') {
-      for (const k of ['ratio', 'videoSeconds', 'ai', 'review', 'precheck', 'riskAuto', 'onReject', 'auto', 'parts', 'videoMode', 'qc', 'qcRedo', 'dedupe', 'ackRisk', 'autoUpdate', 'autoDl', 'dlQ']) if (b[k] !== undefined) settings[k] = b[k];
+      for (const k of ['ratio', 'videoSeconds', 'ai', 'review', 'precheck', 'riskAuto', 'onReject', 'auto', 'parts', 'videoMode', 'qc', 'qcRedo', 'dedupe', 'ackRisk', 'autoUpdate', 'autoDl', 'dlQ', 'model']) if (b[k] !== undefined) settings[k] = b[k];
+      if (!lib.MODELS[settings.model]) settings.model = 'o12';
+      if (lib.effModel(settings.model) === 'o11' && Number(settings.videoSeconds) > 10) settings.videoSeconds = 10; // Omni 1.1 ยาวได้สุด 10 วิ
       if (b.login) settings.login = { ...settings.login, ...b.login };
       saveSettings(); return send(res, 200, { ok: true, settings });
     }
@@ -753,7 +757,7 @@ http.createServer(async (req, res) => {
       const script = String(b.script || '').slice(0, 1500);
       const story = cleanStory(b.story); job.story = story;
       if (story.length >= 2) { settings.parts = story.length; saveSettings(); } // จำนวนท่อน = จำนวนฉากที่ผู้ใช้เขียน
-      const ins = lib.buildInstruction({ topic: job.topic, cast, script, story, series: seriesCtx, film, parts: settings.parts, ratio: settings.ratio, seconds: settings.videoSeconds, videoMode: settings.videoMode, refs: activeRefs(), part: partNo });
+      const ins = lib.buildInstruction({ topic: job.topic, cast, script, story, series: seriesCtx, film, parts: settings.parts, ratio: settings.ratio, seconds: settings.videoSeconds, model: settings.model, videoMode: settings.videoMode, refs: activeRefs(), part: partNo });
       if (settings.ai === 'other') { clipLast = null; setPhase('waitclip', { instruction: ins }); return send(res, 200, { ok: true }); }
       setPhase('asking', { msg: `${AI_NAME[settings.ai]} กำลังเขียน prompt ให้…` });
       askAI(ins, 2 * settings.parts + 2, (err, text) => { if (err) return setPhase('error', { error: err }); ingest(text, AI_NAME[settings.ai], true); });
@@ -784,7 +788,7 @@ http.createServer(async (req, res) => {
       settings.auto = !!b.auto; saveSettings();
       setPhase('asking', { msg: `ส่งคำสั่งเข้าแชตที่เปิดอยู่ใน ${AI_NAME[settings.ai]} … (เปิดแชต/Project ที่มีเรื่องของคุณไว้ในหน้าต่าง Chrome ของบอท)`, error: '' });
       const note = String(b.note || '').slice(0, 800);
-      const msg = (lib.isEn() ? 'Export for FlowBot' + (note ? ' — note: ' + note : '') : 'ส่งออกให้ FlowBot' + (note ? ' — หมายเหตุ: ' + note : '')) + '\n\n' + lib.buildInstruction({ topic: lib.isEn() ? '(per the story, characters, scenes and script we built in this chat/project — do not invent a new story, do not change the character design)' : '(ตามเรื่อง ตัวละคร ฉาก และบทที่เราทำไว้ในแชต/โปรเจ็กต์นี้ — ห้ามคิดเรื่องใหม่ ห้ามเปลี่ยนดีไซน์ตัวละคร)', parts: settings.parts, ratio: settings.ratio, seconds: settings.videoSeconds, videoMode: settings.videoMode, refs: activeRefs(), part: partNo });
+      const msg = (lib.isEn() ? 'Export for FlowBot' + (note ? ' — note: ' + note : '') : 'ส่งออกให้ FlowBot' + (note ? ' — หมายเหตุ: ' + note : '')) + '\n\n' + lib.buildInstruction({ topic: lib.isEn() ? '(per the story, characters, scenes and script we built in this chat/project — do not invent a new story, do not change the character design)' : '(ตามเรื่อง ตัวละคร ฉาก และบทที่เราทำไว้ในแชต/โปรเจ็กต์นี้ — ห้ามคิดเรื่องใหม่ ห้ามเปลี่ยนดีไซน์ตัวละคร)', parts: settings.parts, ratio: settings.ratio, seconds: settings.videoSeconds, model: settings.model, videoMode: settings.videoMode, refs: activeRefs(), part: partNo });
       addLog('ส่งคำสั่งส่งออกเข้าแชตที่เปิดอยู่ → ' + AI_NAME[settings.ai]);
       askAI(msg, 1, (err, out) => {
         if (err) return setPhase('error', { error: `ส่งเข้าแชตที่เปิดอยู่ไม่สำเร็จ: ${err}`, msg: '' });

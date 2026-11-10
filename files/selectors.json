@@ -12,5 +12,6 @@
   "pickerItem": "button.asset-item",
   "clearPrompt": "button[aria-label=\"ล้างพรอมต์\"], button[aria-label=\"Clear prompt\"]",
   "pickerAdd": "button:has-text(\"เพิ่มไปยังพรอมต์\"), button:has-text(\"Add to prompt\")",
-  "ingredientImg": "img[alt=\"รูปภาพองค์ประกอบ\"], img[alt=\"Ingredient image\"]"
+  "ingredientImg": "img[alt=\"รูปภาพองค์ประกอบ\"], img[alt=\"Ingredient image\"]",
+  "modelButton": "button[aria-label=\"เลือกกลุ่มผลิตภัณฑ์โมเดล\"], button[aria-label=\"Select model family\"], button[aria-haspopup=\"menu\"]:has-text(\"Omni\")"
 }

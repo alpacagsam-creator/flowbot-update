@@ -191,8 +191,22 @@ function planOf(raw) {
   const pipeline = segs.some(s => s.kind !== 'text');
   return { segs, images, videos, pipeline, error: null };
 }
-const creditPerVideo = sec => Math.round((Number(sec) || 10) * 1.5); // 10 วิ = 15 เครดิต (ประมาณการ)
-const estimateCredits = (plan, sec) => (plan.videos ? plan.videos.length : 0) * creditPerVideo(sec);
+// ---------- โมเดลวิดีโอของ Flow (พ.ย. 2026): Omni 1.1 Flash (ถูก) / Omni 1.2 Flash (ดีกว่า ยาวได้ 15 วิ) ----------
+// ตัวเลขเครดิตวัดจากหน้า Flow จริง 10 พ.ย. 2026: 8 วิ x1 → 1.1 = 12 เครดิต, 1.2 = 24 เครดิต · Flow แจ้ง 1.1 เลิกใช้ 5 ธ.ค. 2026
+const MODELS = {
+  o11: { key: 'o11', name: 'Omni 1.1 Flash', re: /omni\s*1\.1/i, max: 10, rate: 1.5 },
+  o12: { key: 'o12', name: 'Omni 1.2 Flash', re: /omni\s*1\.2/i, max: 15, rate: 3 },
+};
+const O11_END = '2026-12-05T00:00:00+07:00'; // ตั้งแต่เวลานี้ Omni 1.1 ใช้ไม่ได้แล้ว → บังคับ 1.2
+const o11Gone = (now = Date.now()) => now >= Date.parse(O11_END);
+const effModel = (k, now) => (k === 'o11' && !o11Gone(now)) ? 'o11' : 'o12';
+function modelRule(k) {
+  return effModel(k) === 'o11'
+    ? 'VIDEO MODEL: Google Flow "Omni 1.1 Flash" (older, cheaper, max 10 seconds per segment). It drifts more easily, so keep every video segment SIMPLE: at most 2 people doing something on screen, one main action per segment (small gestures are fine), one slow camera move or a locked camera, and repeat the key look of each person and product (face, hair, outfit, colours) in every video prompt. Never write a segment longer than 10 seconds.'
+    : 'VIDEO MODEL: Google Flow "Omni 1.2 Flash" (newer, follows the attached reference images closely and keeps faces, outfits and props consistent, up to 15 seconds per segment). Where the other rules allow, a segment may hold 2-3 action beats in order and up to 3 people on screen, and you can rely on the attached Character Sheet / Scene / Product images for the look (name them and give a short reminder of the key look). All other rules still apply (one location, no cuts inside a segment).';
+}
+const creditPerVideo = (sec, model) => Math.round((Number(sec) || 10) * MODELS[effModel(model)].rate); // ประมาณการ: 1.1 = 1.5/วิ, 1.2 = 3/วิ
+const estimateCredits = (plan, sec, model) => (plan.videos ? plan.videos.length : 0) * creditPerVideo(sec, model);
 
 // ---------- ตรวจคำเสี่ยงก่อนส่งเข้า Flow ----------
 // รายการนี้เป็น "คำที่มักทำให้ Flow ปฏิเสธ" จากประสบการณ์ ไม่ใช่รายการทางการของ Google — ใช้เป็นตัวช่วยเตือนเท่านั้น
@@ -639,10 +653,15 @@ ${block}
 }
 
 const refsBlock = refs => LANG === 'en' ? refsBlockEN(refs) : refsBlockTH(refs);
-const buildInstruction = o => LANG === 'en' ? buildInstructionEN(o) : buildInstructionTH(o);
+const buildInstruction = o => { // ใส่กฎตามโมเดลวิดีโอที่ลูกค้าเลือก ก่อนบรรทัด "ห้ามมีข้อความอื่น…"
+  const t = LANG === 'en' ? buildInstructionEN(o) : buildInstructionTH(o);
+  if (!o || !o.model) return t;
+  const r = modelRule(o.model), i = t.lastIndexOf('\n\n');
+  return i > 0 ? t.slice(0, i) + '\n\n' + r + t.slice(i) : t + '\n\n' + r;
+};
 const buildConvert = (t, r) => LANG === 'en' ? buildConvertEN(t, r) : buildConvertTH(t, r);
 const buildExportSnippet = o => LANG === 'en' ? buildExportSnippetEN(o) : buildExportSnippetTH(o);
 const buildLighten = r => LANG === 'en' ? buildLightenEN(r) : buildLightenTH(r);
 const buildFixOne = (b, w) => LANG === 'en' ? buildFixOneEN(b, w) : buildFixOneTH(b, w);
 
-module.exports = { setLang, isEn: () => LANG === 'en',  refsBlock, normRefs, REF_KIND, parseTag, parseBlock, splitBlocks, parseSegments, inferPipeline, normalizePrompts, countSegs, planOf, creditPerVideo, estimateCredits, riskScan, buildInstruction, buildExportSnippet, buildConvert, buildLighten, buildFixOne, replaceSegment, toFenced };
+module.exports = { MODELS, O11_END, o11Gone, effModel, modelRule, setLang, isEn: () => LANG === 'en',  refsBlock, normRefs, REF_KIND, parseTag, parseBlock, splitBlocks, parseSegments, inferPipeline, normalizePrompts, countSegs, planOf, creditPerVideo, estimateCredits, riskScan, buildInstruction, buildExportSnippet, buildConvert, buildLighten, buildFixOne, replaceSegment, toFenced };

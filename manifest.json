@@ -1,25 +1,25 @@
 {
-  "rev": 68,
-  "notes": "สำคัญ: ระบบบัญชี NapBot · ลูกค้าเก่าใช้ต่อได้ 14 วัน · ทดลองฟรี 24 ชม. · กลุ่ม LINE OpenChat · Shopee ลิงก์เดียว · คลิปพร้อมโพสต์ 1080p",
-  "at": "2026-11-09T23:01:12.358Z",
+  "rev": 70,
+  "notes": "รุ่น 70: เลือกโมเดลวิดีโอ Omni 1.1 / 1.2 Flash · แท็บข่าวสาร · บอทเลือกโมเดลใน Flow ให้เอง · AI เขียน Prompt ตามโมเดล · จำความยาวสูงสุดของบัญชี Flow",
+  "at": "2026-11-10T11:46:31.556Z",
   "files": {
     "selectors.json": {
-      "sha256": "61ab079d2f5f3a19bc63e413495b24506272c2a4f48c0e9643a6ce5429a498f9"
+      "sha256": "85d677c2a7cdc9f3227006fc706ded78a5ab8cbc381ecadcfb4ac5c08fa2b42a"
     },
     "config.json": {
       "sha256": "3741bf4a6e1748f139eafb1c50638937968ceae4e5fcaad464a9fb3a651ebace"
     },
     "lib.js": {
-      "sha256": "3e66424237b6234a8fe4d9b4f522e176acdd74d6b402999c397908400630ab38"
+      "sha256": "a95455601572d2ab96100b16d6af4b9638e5bb9e77c351d07cf3de532a0576e7"
     },
     "run.js": {
-      "sha256": "cfbb54e9afe5de1a190bb3f0d6735fe99fa57a41e6663be0b717b86d56936c54"
+      "sha256": "9382e61ee5073af95f73f4351a88302a7ce620077fd5fb4aba7d84d55b31ebbb"
     },
     "server.js": {
-      "sha256": "bd89a3520967cf15cdbe9c61ddcfb7f7dc37d6f5c2a5b3889b295e9dd0062537"
+      "sha256": "2b991ba5132937645f42d560d9b0aad0c6e6618feceeac7a6948bbfa0a66b98f"
     },
     "ui.html": {
-      "sha256": "b9c23f304e821e5e7a07bbdd05666912d0e7da31f5ab07da8fac32abc01fa382"
+      "sha256": "4bc68e12ba02799e74374ee81b6df4b9194b303b2cd83a62f6a7542f71e3e311"
     }
   }
 }
