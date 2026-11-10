@@ -247,6 +247,17 @@ async function setLength(page, target) {
     for (const e of document.querySelectorAll('div,span,p,label')) { if (e.children.length) continue; const m = (e.innerText || '').trim().match(/^(\d{1,2})\s*(วินาที|วิ|s|sec|seconds)$/i); if (m) return Number(m[1]); }
     const s = document.querySelector('input[type=range], [role=slider]'); const v = Number(s && (s.value || s.getAttribute('aria-valuenow'))); return isNaN(v) ? null : v;
   }).catch(() => null);
+  // ตั้งค่าแถบตรงๆ ก่อน: Flow ใช้ค่า 0-12 = 3-15 วินาที (ค่า = วินาที - 3) → หาส่วนต่างจากป้าย (เช็คกับ Flow จริง 10 พ.ย. 2026)
+  const direct = await page.evaluate(t => {
+    const inp = document.querySelector('input[type=range]'); if (!inp) return null;
+    let l0 = NaN; for (const e of document.querySelectorAll('div,span,p,label')) { if (e.children.length) continue; const m = (e.innerText || '').trim().match(/^(\d{1,2})\s*(วินาที|วิ|s|sec|seconds)$/i); if (m) { l0 = Number(m[1]); break; } }
+    const v0 = Number(inp.value), off = !isNaN(l0) ? l0 - v0 : 0, want = t - off, mx = Number(inp.max), mn = Number(inp.min) || 0;
+    const v = Math.max(mn, Math.min(mx, want));
+    const d = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value'); inp.focus(); d.set.call(inp, String(v));
+    inp.dispatchEvent(new Event('input', { bubbles: true })); inp.dispatchEvent(new Event('change', { bubbles: true }));
+    return { over: want > mx };
+  }, target).catch(() => null);
+  if (direct) { await sleep(500); if ((await cur()) === target) { log(`ตั้งความยาว ${target} วินาที`); return true; } }
   await sl.focus().catch(() => {});
   for (let i = 0; i < 24; i++) {
     const c = await cur(); if (c === target) { log(`ตั้งความยาว ${target} วินาที`); return true; } if (c == null) break;

@@ -716,6 +716,7 @@ http.createServer(async (req, res) => {
       for (const k of ['ratio', 'videoSeconds', 'ai', 'review', 'precheck', 'riskAuto', 'onReject', 'auto', 'parts', 'videoMode', 'qc', 'qcRedo', 'dedupe', 'ackRisk', 'autoUpdate', 'autoDl', 'dlQ', 'model']) if (b[k] !== undefined) settings[k] = b[k];
       if (!lib.MODELS[settings.model]) settings.model = 'o12';
       if (lib.effModel(settings.model) === 'o11' && Number(settings.videoSeconds) > 10) settings.videoSeconds = 10; // Omni 1.1 ยาวได้สุด 10 วิ
+      if (Number(settings.videoSeconds) < 8) settings.videoSeconds = 8; // เริ่มที่ 8 วิ
       if (b.login) settings.login = { ...settings.login, ...b.login };
       saveSettings(); return send(res, 200, { ok: true, settings });
     }

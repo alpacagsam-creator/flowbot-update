@@ -1,7 +1,7 @@
 {
-  "rev": 70,
-  "notes": "รุ่น 70: เลือกโมเดลวิดีโอ Omni 1.1 / 1.2 Flash · แท็บข่าวสาร · บอทเลือกโมเดลใน Flow ให้เอง · AI เขียน Prompt ตามโมเดล · จำความยาวสูงสุดของบัญชี Flow",
-  "at": "2026-11-10T11:46:31.556Z",
+  "rev": 71,
+  "notes": "รุ่น 71: เลือกโมเดลวิดีโอ Omni 1.1 / 1.2 Flash · แท็บข่าวสาร · ความยาวคลิป 8-15 วิ · ตั้งความยาวบนแถบเลื่อน Omni 1.2 ตรงทุกค่า · ประมาณเครดิตตามจริง",
+  "at": "2026-11-10T11:55:59.373Z",
   "files": {
     "selectors.json": {
       "sha256": "85d677c2a7cdc9f3227006fc706ded78a5ab8cbc381ecadcfb4ac5c08fa2b42a"
@@ -10,16 +10,16 @@
       "sha256": "3741bf4a6e1748f139eafb1c50638937968ceae4e5fcaad464a9fb3a651ebace"
     },
     "lib.js": {
-      "sha256": "a95455601572d2ab96100b16d6af4b9638e5bb9e77c351d07cf3de532a0576e7"
+      "sha256": "74b0390f70c99f18a657629cd9cce4ac791e5fb18a669f661a579a3fd957a486"
     },
     "run.js": {
-      "sha256": "9382e61ee5073af95f73f4351a88302a7ce620077fd5fb4aba7d84d55b31ebbb"
+      "sha256": "1e535d872a7ae644b30e7ae4a21d3132b7a26d59c47d53a419997eae9b087fbd"
     },
     "server.js": {
-      "sha256": "2b991ba5132937645f42d560d9b0aad0c6e6618feceeac7a6948bbfa0a66b98f"
+      "sha256": "5fa0ffa44cfd4319132614fc63effe34f5071fe8d34c18286dac18f6fee733d0"
     },
     "ui.html": {
-      "sha256": "4bc68e12ba02799e74374ee81b6df4b9194b303b2cd83a62f6a7542f71e3e311"
+      "sha256": "038cef000f599fc5bcf1b773b63fbacfc93d3937b7381b2bbeaa9cf3a0a0ece9"
     }
   }
 }

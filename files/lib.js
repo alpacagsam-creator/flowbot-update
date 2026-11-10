@@ -205,7 +205,9 @@ function modelRule(k) {
     ? 'VIDEO MODEL: Google Flow "Omni 1.1 Flash" (older, cheaper, max 10 seconds per segment). It drifts more easily, so keep every video segment SIMPLE: at most 2 people doing something on screen, one main action per segment (small gestures are fine), one slow camera move or a locked camera, and repeat the key look of each person and product (face, hair, outfit, colours) in every video prompt. Never write a segment longer than 10 seconds.'
     : 'VIDEO MODEL: Google Flow "Omni 1.2 Flash" (newer, follows the attached reference images closely and keeps faces, outfits and props consistent, up to 15 seconds per segment). Where the other rules allow, a segment may hold 2-3 action beats in order and up to 3 people on screen, and you can rely on the attached Character Sheet / Scene / Product images for the look (name them and give a short reminder of the key look). All other rules still apply (one location, no cuts inside a segment).';
 }
-const creditPerVideo = (sec, model) => Math.round((Number(sec) || 10) * MODELS[effModel(model)].rate); // ประมาณการ: 1.1 = 1.5/วิ, 1.2 = 3/วิ
+// เครดิตต่อคลิป (x1) จากหน้า Flow จริง 10 พ.ย. 2026 · 1.2: 4→12 6→18 8→24 10→30 12→42 15→60 · 1.1: 1.5/วิ
+const O12_CR = { 3: 9, 4: 12, 5: 15, 6: 18, 7: 21, 8: 24, 9: 27, 10: 30, 11: 36, 12: 42, 13: 48, 14: 54, 15: 60 };
+const creditPerVideo = (sec, model) => { const s = Math.round(Number(sec) || 10); return effModel(model) === 'o11' ? Math.round(s * 1.5) : (O12_CR[s] || Math.round(s * 3)); };
 const estimateCredits = (plan, sec, model) => (plan.videos ? plan.videos.length : 0) * creditPerVideo(sec, model);
 
 // ---------- ตรวจคำเสี่ยงก่อนส่งเข้า Flow ----------
